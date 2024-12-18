@@ -398,6 +398,11 @@ type GroupsIsTheGroupsToBeUpdated struct {
 	Name string `json:"name"`
 }
 
+// KeyIsTheServiceAccountKeyToUpdate defines model for Key_is_the_service_account_key_to_update_.
+type KeyIsTheServiceAccountKeyToUpdate struct {
+	Active bool `json:"active"`
+}
+
 // RoleBindingIsTheRoleBindingToBeUpdated defines model for RoleBinding_is_the_role_binding_to_be_updated_.
 type RoleBindingIsTheRoleBindingToBeUpdated struct {
 	// Definition represents the role binding definition.
@@ -408,6 +413,17 @@ type RoleBindingIsTheRoleBindingToBeUpdated struct {
 
 	// Name is the name of the role binding.
 	Name string `json:"name"`
+}
+
+// CreateServiceAccountKeyRequest is the request for creating a service account key.
+type ServiceAccountsAPICreateServiceAccountKeyRequest struct {
+	// Key is the readable version of the service account key.
+	Key CastaiServiceaccountsV1beta1CreateServiceAccountKeyRequestKey `json:"key"`
+}
+
+// UpdateServiceAccountRequest is the request for updating a service account.
+type ServiceAccountsAPIUpdateServiceAccountRequest struct {
+	ServiceAccount CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount `json:"serviceAccount"`
 }
 
 // UsersAPIUpdateOrganizationUserRequest defines model for UsersAPI_UpdateOrganizationUser_request.
@@ -1342,6 +1358,14 @@ type CastaiOperationsV1beta1OperationError struct {
 	Reason *string `json:"reason,omitempty"`
 }
 
+// Page defines how many and which fields should be returned.
+type CastaiPaginationV1beta1Page struct {
+	// Cursor that defines token indicating where to start the next page.
+	// Empty value indicates to start from beginning of the dataset.
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *string `json:"limit,omitempty"`
+}
+
 // CastaiRbacV1beta1Author defines model for castai.rbac.v1beta1.Author.
 type CastaiRbacV1beta1Author struct {
 	// Email is the email of the author.
@@ -1404,6 +1428,9 @@ type CastaiRbacV1beta1Group struct {
 
 	// ID is the unique identifier of the group.
 	Id *string `json:"id,omitempty"`
+
+	// Method used to create group, eg.: console, terraform.
+	ManagedBy *string `json:"managedBy,omitempty"`
 
 	// Name is the name of the group.
 	Name *string `json:"name,omitempty"`
@@ -1491,6 +1518,9 @@ type CastaiRbacV1beta1RoleBinding struct {
 
 	// ID is the unique identifier of the role binding.
 	Id *string `json:"id,omitempty"`
+
+	// Method used to create role binding, eg.: console, terraform.
+	ManagedBy *string `json:"managedBy,omitempty"`
 
 	// Name is the name of the role binding.
 	Name           *string `json:"name,omitempty"`
@@ -1585,6 +1615,188 @@ type CastaiRbacV1beta1UserSubject struct {
 
 	// Name is the name of the user.
 	Name *string `json:"name,omitempty"`
+}
+
+// Key is the readable version of the service account key.
+type CastaiServiceaccountsV1beta1CreateServiceAccountKeyRequestKey struct {
+	// Active is the active state of the key.
+	Active *bool `json:"active,omitempty"`
+
+	// ExpiresAt is the expiration time of the key.
+	// A null value means that the key will never expire.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Name is the name of the service account key.
+	Name string `json:"name"`
+}
+
+// CreateServiceAccountKeyResponse is the response for creating a service account key.
+type CastaiServiceaccountsV1beta1CreateServiceAccountKeyResponse struct {
+	// Active determines if the key is active.
+	Active *bool `json:"active,omitempty"`
+
+	// CreatedAt is the creation time of the key.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// ExpiresAt is the expiration time of the key.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// ID is the unique identifier of the key.
+	Id *string `json:"id,omitempty"`
+
+	// Name is the name of the key.
+	Name *string `json:"name,omitempty"`
+
+	// Token is the full secret key.
+	Token *string `json:"token,omitempty"`
+}
+
+// ServiceAccounts is the readable version of the service accounts.
+type CastaiServiceaccountsV1beta1CreateServiceAccountRequestServiceAccount struct {
+	// Description is the description of the role binding.
+	Description *string `json:"description,omitempty"`
+
+	// Name is the name of the service account.
+	Name string `json:"name"`
+}
+
+// CreateServiceAccountResponse is the response for creating a service account.
+type CastaiServiceaccountsV1beta1CreateServiceAccountResponse struct {
+	Author      *CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor `json:"author,omitempty"`
+	CreatedAt   *time.Time                                                      `json:"createdAt,omitempty"`
+	Description *string                                                         `json:"description,omitempty"`
+	Email       *string                                                         `json:"email,omitempty"`
+	Id          *string                                                         `json:"id,omitempty"`
+	Name        *string                                                         `json:"name,omitempty"`
+}
+
+// CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor defines model for castai.serviceaccounts.v1beta1.CreateServiceAccountResponse.Author.
+type CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor struct {
+	Email *string `json:"email,omitempty"`
+	Id    *string `json:"id,omitempty"`
+}
+
+// DeleteServiceAccountKeyResponse is the response for deleting a service account key.
+type CastaiServiceaccountsV1beta1DeleteServiceAccountKeyResponse = map[string]interface{}
+
+// DeleteServiceAccountResponse is the response for deleting a service account.
+type CastaiServiceaccountsV1beta1DeleteServiceAccountResponse = map[string]interface{}
+
+// GetServiceAccountKeyResponse is the response for getting a service account key.
+type CastaiServiceaccountsV1beta1GetServiceAccountKeyResponse struct {
+	// Key is the key for the service account.
+	Key CastaiServiceaccountsV1beta1ServiceAccountKey `json:"key"`
+}
+
+// GetServiceAccountResponse is the response for getting a service account.
+type CastaiServiceaccountsV1beta1GetServiceAccountResponse struct {
+	// ServiceAccounts is the readable version of the service accounts.
+	ServiceAccount CastaiServiceaccountsV1beta1ServiceAccount `json:"serviceAccount"`
+}
+
+// ListServiceAccountsResponse is the response for listing service accounts.
+type CastaiServiceaccountsV1beta1ListServiceAccountsResponse struct {
+	// Page defines how many and which fields should be returned.
+	NextPage CastaiPaginationV1beta1Page `json:"nextPage"`
+
+	// ServiceAccounts is the list of service accounts.
+	ServiceAccounts *[]CastaiServiceaccountsV1beta1ServiceAccount `json:"serviceAccounts,omitempty"`
+
+	// TotalCount is the total number of service accounts in the dataset.
+	TotalCount *string `json:"totalCount,omitempty"`
+}
+
+// ServiceAccounts is the readable version of the service accounts.
+type CastaiServiceaccountsV1beta1ServiceAccount struct {
+	// Author is the author of the service account.
+	Author *CastaiServiceaccountsV1beta1ServiceAccountAuthor `json:"author,omitempty"`
+
+	// CreatedAt is the timestamp when the service account was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Description is the description of the role binding.
+	Description *string `json:"description,omitempty"`
+
+	// Email is the email of the service account.
+	Email *string `json:"email,omitempty"`
+
+	// ID is the unique identifier of the service account.
+	Id *string `json:"id,omitempty"`
+
+	// Keys is the list of keys associated with the service account.
+	Keys *[]CastaiServiceaccountsV1beta1ServiceAccountKey `json:"keys,omitempty"`
+
+	// Method used to create role binding, eg.: console, terraform.
+	ManagedBy *string `json:"managedBy,omitempty"`
+
+	// Name is the name of the service account.
+	Name *string `json:"name,omitempty"`
+}
+
+// Author is the author of the service account.
+type CastaiServiceaccountsV1beta1ServiceAccountAuthor struct {
+	// Email is the email of the author.
+	Email *string `json:"email,omitempty"`
+
+	// ID is the unique identifier of the author.
+	Id *string `json:"id,omitempty"`
+
+	// Kind is the kind of the author.
+	Kind *string `json:"kind,omitempty"`
+}
+
+// Key is the key for the service account.
+type CastaiServiceaccountsV1beta1ServiceAccountKey struct {
+	// Active determines if the key is active.
+	Active *bool `json:"active,omitempty"`
+
+	// ExpiresAt is the expiration time of the key.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// ID is the unique identifier of the key.
+	Id *string `json:"id,omitempty"`
+
+	// LastUsedAt is the last time the key was used.
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
+
+	// Name is the name of the key.
+	Name *string `json:"name,omitempty"`
+
+	// Prefix is the prefix of the key.
+	Prefix *string `json:"prefix,omitempty"`
+}
+
+// UpdateServiceAccountKeyResponse is the response for updating a service account key.
+type CastaiServiceaccountsV1beta1UpdateServiceAccountKeyResponse struct {
+	// Active determines if the key is active.
+	Active *bool `json:"active,omitempty"`
+
+	// ExpiresAt is the expiration time of the key.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// ID is the unique identifier of the key.
+	Id *string `json:"id,omitempty"`
+
+	// LastUsedAt is the last time the key was used.
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
+
+	// Name is the name of the key.
+	Name *string `json:"name,omitempty"`
+
+	// Prefix is the prefix of the key.
+	Prefix *string `json:"prefix,omitempty"`
+}
+
+// CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount defines model for castai.serviceaccounts.v1beta1.UpdateServiceAccountRequest.ServiceAccount.
+type CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
+// UpdateServiceAccountResponse is the response for updating a service account.
+type CastaiServiceaccountsV1beta1UpdateServiceAccountResponse struct {
+	// ServiceAccounts is the readable version of the service accounts.
+	ServiceAccount CastaiServiceaccountsV1beta1ServiceAccount `json:"serviceAccount"`
 }
 
 // AzureAAD represents a Azure AAD connector.
@@ -4107,6 +4319,7 @@ type WorkloadoptimizationV1ResourceConfig struct {
 	// QUANTILE - the quantile function.
 	// MAX - the max function.
 	Function WorkloadoptimizationV1ResourceConfigFunction `json:"function"`
+	Limit    *WorkloadoptimizationV1ResourceLimitStrategy `json:"limit,omitempty"`
 
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
@@ -4139,6 +4352,12 @@ type WorkloadoptimizationV1ResourceConfigUpdate struct {
 	Min *float64 `json:"min"`
 }
 
+// WorkloadoptimizationV1ResourceLimitStrategy defines model for workloadoptimization.v1.ResourceLimitStrategy.
+type WorkloadoptimizationV1ResourceLimitStrategy struct {
+	Multiplier *float64 `json:"multiplier,omitempty"`
+	None       *bool    `json:"none,omitempty"`
+}
+
 // WorkloadoptimizationV1ResourceMetrics defines model for workloadoptimization.v1.ResourceMetrics.
 type WorkloadoptimizationV1ResourceMetrics struct {
 	Max       float64   `json:"max"`
@@ -4163,6 +4382,7 @@ type WorkloadoptimizationV1ResourcePolicies struct {
 	// QUANTILE - the quantile function.
 	// MAX - the max function.
 	Function WorkloadoptimizationV1ResourcePoliciesFunction `json:"function"`
+	Limit    *WorkloadoptimizationV1ResourceLimitStrategy   `json:"limit,omitempty"`
 
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
@@ -4275,6 +4495,7 @@ type WorkloadoptimizationV1UpdateWorkloadV2 struct {
 // WorkloadoptimizationV1VPAConfig defines model for workloadoptimization.v1.VPAConfig.
 type WorkloadoptimizationV1VPAConfig struct {
 	AntiAffinity         WorkloadoptimizationV1AntiAffinitySettings   `json:"antiAffinity"`
+	ApplyType            WorkloadoptimizationV1ApplyType              `json:"applyType"`
 	ContainerConstraints []WorkloadoptimizationV1ContainerConstraints `json:"containerConstraints"`
 	Cpu                  WorkloadoptimizationV1ResourceConfig         `json:"cpu"`
 
@@ -4413,6 +4634,8 @@ type WorkloadoptimizationV1WorkloadRecommendation struct {
 
 // WorkloadoptimizationV1WorkloadResourceConfigUpdate defines model for workloadoptimization.v1.WorkloadResourceConfigUpdate.
 type WorkloadoptimizationV1WorkloadResourceConfigUpdate struct {
+	Limit *WorkloadoptimizationV1ResourceLimitStrategy `json:"limit,omitempty"`
+
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
 
@@ -4661,6 +4884,27 @@ type RbacServiceAPICreateRoleBindingsJSONBody = []CastaiRbacV1beta1CreateRoleBin
 
 // RbacServiceAPIUpdateRoleBindingJSONBody defines parameters for RbacServiceAPIUpdateRoleBinding.
 type RbacServiceAPIUpdateRoleBindingJSONBody = RoleBindingIsTheRoleBindingToBeUpdated
+
+// ServiceAccountsAPIListServiceAccountsParams defines parameters for ServiceAccountsAPIListServiceAccounts.
+type ServiceAccountsAPIListServiceAccountsParams struct {
+	PageLimit *string `form:"page.limit,omitempty" json:"page.limit,omitempty"`
+
+	// Cursor that defines token indicating where to start the next page.
+	// Empty value indicates to start from beginning of the dataset.
+	PageCursor *string `form:"page.cursor,omitempty" json:"page.cursor,omitempty"`
+}
+
+// ServiceAccountsAPICreateServiceAccountJSONBody defines parameters for ServiceAccountsAPICreateServiceAccount.
+type ServiceAccountsAPICreateServiceAccountJSONBody = CastaiServiceaccountsV1beta1CreateServiceAccountRequestServiceAccount
+
+// ServiceAccountsAPIUpdateServiceAccountJSONBody defines parameters for ServiceAccountsAPIUpdateServiceAccount.
+type ServiceAccountsAPIUpdateServiceAccountJSONBody = ServiceAccountsAPIUpdateServiceAccountRequest
+
+// ServiceAccountsAPICreateServiceAccountKeyJSONBody defines parameters for ServiceAccountsAPICreateServiceAccountKey.
+type ServiceAccountsAPICreateServiceAccountKeyJSONBody = ServiceAccountsAPICreateServiceAccountKeyRequest
+
+// ServiceAccountsAPIUpdateServiceAccountKeyJSONBody defines parameters for ServiceAccountsAPIUpdateServiceAccountKey.
+type ServiceAccountsAPIUpdateServiceAccountKeyJSONBody = KeyIsTheServiceAccountKeyToUpdate
 
 // UsersAPIRemoveOrganizationUsersParams defines parameters for UsersAPIRemoveOrganizationUsers.
 type UsersAPIRemoveOrganizationUsersParams struct {
@@ -4923,6 +5167,18 @@ type RbacServiceAPICreateRoleBindingsJSONRequestBody = RbacServiceAPICreateRoleB
 
 // RbacServiceAPIUpdateRoleBindingJSONRequestBody defines body for RbacServiceAPIUpdateRoleBinding for application/json ContentType.
 type RbacServiceAPIUpdateRoleBindingJSONRequestBody = RbacServiceAPIUpdateRoleBindingJSONBody
+
+// ServiceAccountsAPICreateServiceAccountJSONRequestBody defines body for ServiceAccountsAPICreateServiceAccount for application/json ContentType.
+type ServiceAccountsAPICreateServiceAccountJSONRequestBody = ServiceAccountsAPICreateServiceAccountJSONBody
+
+// ServiceAccountsAPIUpdateServiceAccountJSONRequestBody defines body for ServiceAccountsAPIUpdateServiceAccount for application/json ContentType.
+type ServiceAccountsAPIUpdateServiceAccountJSONRequestBody = ServiceAccountsAPIUpdateServiceAccountJSONBody
+
+// ServiceAccountsAPICreateServiceAccountKeyJSONRequestBody defines body for ServiceAccountsAPICreateServiceAccountKey for application/json ContentType.
+type ServiceAccountsAPICreateServiceAccountKeyJSONRequestBody = ServiceAccountsAPICreateServiceAccountKeyJSONBody
+
+// ServiceAccountsAPIUpdateServiceAccountKeyJSONRequestBody defines body for ServiceAccountsAPIUpdateServiceAccountKey for application/json ContentType.
+type ServiceAccountsAPIUpdateServiceAccountKeyJSONRequestBody = ServiceAccountsAPIUpdateServiceAccountKeyJSONBody
 
 // UsersAPIAddUserToOrganizationJSONRequestBody defines body for UsersAPIAddUserToOrganization for application/json ContentType.
 type UsersAPIAddUserToOrganizationJSONRequestBody = UsersAPIAddUserToOrganizationJSONBody
