@@ -74,6 +74,7 @@ const (
 // Defines values for CastaiInventoryV1beta1DiscountPricingType.
 const (
 	CastaiInventoryV1beta1DiscountPricingTypeTYPEFIXED      CastaiInventoryV1beta1DiscountPricingType = "TYPE_FIXED"
+	CastaiInventoryV1beta1DiscountPricingTypeTYPEFLAT       CastaiInventoryV1beta1DiscountPricingType = "TYPE_FLAT"
 	CastaiInventoryV1beta1DiscountPricingTypeTYPEPERCENTAGE CastaiInventoryV1beta1DiscountPricingType = "TYPE_PERCENTAGE"
 	CastaiInventoryV1beta1DiscountPricingTypeTYPEUNKNOWN    CastaiInventoryV1beta1DiscountPricingType = "TYPE_UNKNOWN"
 )
@@ -363,10 +364,23 @@ const (
 	WorkloadoptimizationV1ResourceConfigFunctionQUANTILE WorkloadoptimizationV1ResourceConfigFunction = "QUANTILE"
 )
 
+// Defines values for WorkloadoptimizationV1ResourceConfigOverridesFunction.
+const (
+	WorkloadoptimizationV1ResourceConfigOverridesFunctionMAX      WorkloadoptimizationV1ResourceConfigOverridesFunction = "MAX"
+	WorkloadoptimizationV1ResourceConfigOverridesFunctionQUANTILE WorkloadoptimizationV1ResourceConfigOverridesFunction = "QUANTILE"
+)
+
+// Defines values for WorkloadoptimizationV1ResourceLimitStrategyType.
+const (
+	MULTIPLIER WorkloadoptimizationV1ResourceLimitStrategyType = "MULTIPLIER"
+	NOLIMIT    WorkloadoptimizationV1ResourceLimitStrategyType = "NO_LIMIT"
+	UNKNOWN    WorkloadoptimizationV1ResourceLimitStrategyType = "UNKNOWN"
+)
+
 // Defines values for WorkloadoptimizationV1ResourcePoliciesFunction.
 const (
-	WorkloadoptimizationV1ResourcePoliciesFunctionMAX      WorkloadoptimizationV1ResourcePoliciesFunction = "MAX"
-	WorkloadoptimizationV1ResourcePoliciesFunctionQUANTILE WorkloadoptimizationV1ResourcePoliciesFunction = "QUANTILE"
+	MAX      WorkloadoptimizationV1ResourcePoliciesFunction = "MAX"
+	QUANTILE WorkloadoptimizationV1ResourcePoliciesFunction = "QUANTILE"
 )
 
 // CommitmentsAPIBatchDeleteCommitmentsRequest defines model for CommitmentsAPI_BatchDeleteCommitments_request.
@@ -417,12 +431,13 @@ type RoleBindingIsTheRoleBindingToBeUpdated struct {
 
 // CreateServiceAccountKeyRequest is the request for creating a service account key.
 type ServiceAccountsAPICreateServiceAccountKeyRequest struct {
-	// Key is the readable version of the service account key.
+	// Key is the key to create.
 	Key CastaiServiceaccountsV1beta1CreateServiceAccountKeyRequestKey `json:"key"`
 }
 
 // UpdateServiceAccountRequest is the request for updating a service account.
 type ServiceAccountsAPIUpdateServiceAccountRequest struct {
+	// ServiceAccount is the service account to be updated.
 	ServiceAccount CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount `json:"serviceAccount"`
 }
 
@@ -615,6 +630,59 @@ type CastaiFeaturesV1QueryExpression struct {
 	LogicalOperator CastaiFeaturesV1LogicalOperator `json:"logicalOperator"`
 }
 
+// CastaiInventoryV1beta1AWSAvailabilityZoneMapping defines model for castai.inventory.v1beta1.AWSAvailabilityZoneMapping.
+type CastaiInventoryV1beta1AWSAvailabilityZoneMapping struct {
+	ZoneId   *string `json:"ZoneId,omitempty"`
+	ZoneName *string `json:"ZoneName,omitempty"`
+}
+
+// CastaiInventoryV1beta1AWSRecurringCharges defines model for castai.inventory.v1beta1.AWSRecurringCharges.
+type CastaiInventoryV1beta1AWSRecurringCharges struct {
+	Amount    *float64 `json:"Amount"`
+	Frequency *string  `json:"Frequency"`
+}
+
+// CastaiInventoryV1beta1AWSRegionReservedInstances defines model for castai.inventory.v1beta1.AWSRegionReservedInstances.
+type CastaiInventoryV1beta1AWSRegionReservedInstances struct {
+	AvailabilityZoneMappings *[]CastaiInventoryV1beta1AWSAvailabilityZoneMapping `json:"availabilityZoneMappings,omitempty"`
+	Region                   *string                                             `json:"region,omitempty"`
+	ReservedInstances        *[]CastaiInventoryV1beta1AWSReservedInstances       `json:"reservedInstances,omitempty"`
+}
+
+// CastaiInventoryV1beta1AWSReservedInstances defines model for castai.inventory.v1beta1.AWSReservedInstances.
+type CastaiInventoryV1beta1AWSReservedInstances struct {
+	AvailabilityZone    *string                                      `json:"AvailabilityZone"`
+	CurrencyCode        *string                                      `json:"CurrencyCode,omitempty"`
+	Duration            *string                                      `json:"Duration,omitempty"`
+	End                 *string                                      `json:"End,omitempty"`
+	FixedPrice          *float64                                     `json:"FixedPrice,omitempty"`
+	InstanceCount       *string                                      `json:"InstanceCount,omitempty"`
+	InstanceTenancy     *string                                      `json:"InstanceTenancy,omitempty"`
+	InstanceType        *string                                      `json:"InstanceType,omitempty"`
+	OfferingType        *string                                      `json:"OfferingType,omitempty"`
+	ProductDescription  *string                                      `json:"ProductDescription,omitempty"`
+	RecurringCharges    *[]CastaiInventoryV1beta1AWSRecurringCharges `json:"RecurringCharges,omitempty"`
+	ReservedInstancesId *string                                      `json:"ReservedInstancesId,omitempty"`
+	Scope               *string                                      `json:"Scope,omitempty"`
+	Start               *string                                      `json:"Start,omitempty"`
+	State               *string                                      `json:"State,omitempty"`
+	UsagePrice          *float64                                     `json:"UsagePrice,omitempty"`
+}
+
+// CastaiInventoryV1beta1AWSReservedInstancesContext defines model for castai.inventory.v1beta1.AWSReservedInstancesContext.
+type CastaiInventoryV1beta1AWSReservedInstancesContext struct {
+	AvailabilityZoneId    *string                                       `json:"availabilityZoneId"`
+	AvailabilityZoneName  *string                                       `json:"availabilityZoneName"`
+	Id                    *string                                       `json:"id,omitempty"`
+	InstanceCount         *string                                       `json:"instanceCount,omitempty"`
+	InstanceType          *string                                       `json:"instanceType,omitempty"`
+	InstanceTypeCpu       *string                                       `json:"instanceTypeCpu,omitempty"`
+	InstanceTypeMemoryMib *string                                       `json:"instanceTypeMemoryMib,omitempty"`
+	InstanceTypesUsage    *CastaiInventoryV1beta1InstanceTypeBasedUsage `json:"instanceTypesUsage,omitempty"`
+	Scope                 *string                                       `json:"scope,omitempty"`
+	State                 *string                                       `json:"state,omitempty"`
+}
+
 // CastaiInventoryV1beta1AddReservationResponse defines model for castai.inventory.v1beta1.AddReservationResponse.
 type CastaiInventoryV1beta1AddReservationResponse struct {
 	Reservation *CastaiInventoryV1beta1ReservationDetails `json:"reservation,omitempty"`
@@ -734,14 +802,15 @@ type CastaiInventoryV1beta1Commitment struct {
 	AllowedUsage *float32 `json:"allowedUsage,omitempty"`
 
 	// Assign commitment to all existing and future clusters that fall within the region of this commitment.
-	AutoAssignment          *bool                                   `json:"autoAssignment,omitempty"`
-	AzureReservationContext *CastaiInventoryV1beta1AzureReservation `json:"azureReservationContext,omitempty"`
-	EndDate                 *time.Time                              `json:"endDate"`
-	GcpResourceCudContext   *CastaiInventoryV1beta1GCPResourceCUD   `json:"gcpResourceCudContext,omitempty"`
-	Id                      *string                                 `json:"id,omitempty"`
-	Name                    *string                                 `json:"name,omitempty"`
-	Prioritization          *bool                                   `json:"prioritization,omitempty"`
-	Region                  *string                                 `json:"region,omitempty"`
+	AutoAssignment              *bool                                              `json:"autoAssignment,omitempty"`
+	AwsReservedInstancesContext *CastaiInventoryV1beta1AWSReservedInstancesContext `json:"awsReservedInstancesContext,omitempty"`
+	AzureReservationContext     *CastaiInventoryV1beta1AzureReservation            `json:"azureReservationContext,omitempty"`
+	EndDate                     *time.Time                                         `json:"endDate"`
+	GcpResourceCudContext       *CastaiInventoryV1beta1GCPResourceCUD              `json:"gcpResourceCudContext,omitempty"`
+	Id                          *string                                            `json:"id,omitempty"`
+	Name                        *string                                            `json:"name,omitempty"`
+	Prioritization              *bool                                              `json:"prioritization,omitempty"`
+	Region                      *string                                            `json:"region,omitempty"`
 
 	// Scaling strategy specifies how to use commitment by autoscaler.
 	//
@@ -800,6 +869,8 @@ type CastaiInventoryV1beta1DiscountPricing struct {
 	// be $1.
 	//  - TYPE_PERCENTAGE: Specifies a percentage discount. If set, the price will be reduced by the percentage value. For example if the public price is $5 and the discount value is "0.1" (10%), the final price will be
 	// $4.
+	//  - TYPE_FLAT: Specifies a flat discount. If set, the price will be reduced by the specified value. For example if the public price is $5 and the discount value is "1", the final price will be
+	// $4. Same if discount value is "-1", the final price will be $6.
 	Type  *CastaiInventoryV1beta1DiscountPricingType `json:"type,omitempty"`
 	Value *string                                    `json:"value,omitempty"`
 }
@@ -809,6 +880,9 @@ type CastaiInventoryV1beta1DiscountPricing struct {
 //   - TYPE_PERCENTAGE: Specifies a percentage discount. If set, the price will be reduced by the percentage value. For example if the public price is $5 and the discount value is "0.1" (10%), the final price will be
 //
 // $4.
+//   - TYPE_FLAT: Specifies a flat discount. If set, the price will be reduced by the specified value. For example if the public price is $5 and the discount value is "1", the final price will be
+//
+// $4. Same if discount value is "-1", the final price will be $6.
 type CastaiInventoryV1beta1DiscountPricingType string
 
 // CastaiInventoryV1beta1GCPCommitmentImport defines model for castai.inventory.v1beta1.GCPCommitmentImport.
@@ -911,6 +985,11 @@ type CastaiInventoryV1beta1GenericReservation struct {
 // CastaiInventoryV1beta1GenericReservationsList defines model for castai.inventory.v1beta1.GenericReservationsList.
 type CastaiInventoryV1beta1GenericReservationsList struct {
 	Items *[]CastaiInventoryV1beta1GenericReservation `json:"items,omitempty"`
+}
+
+// CastaiInventoryV1beta1GetAWSReservedInstancesImportCMDResponse defines model for castai.inventory.v1beta1.GetAWSReservedInstancesImportCMDResponse.
+type CastaiInventoryV1beta1GetAWSReservedInstancesImportCMDResponse struct {
+	Cmd *string `json:"cmd,omitempty"`
 }
 
 // CastaiInventoryV1beta1GetCommitmentAssignmentsResponse defines model for castai.inventory.v1beta1.GetCommitmentAssignmentsResponse.
@@ -1617,9 +1696,9 @@ type CastaiRbacV1beta1UserSubject struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// Key is the readable version of the service account key.
+// Key is the key to create.
 type CastaiServiceaccountsV1beta1CreateServiceAccountKeyRequestKey struct {
-	// Active is the active state of the key.
+	// Active is the active state of the key. If not provided, the default is true.
 	Active *bool `json:"active,omitempty"`
 
 	// ExpiresAt is the expiration time of the key.
@@ -1651,7 +1730,7 @@ type CastaiServiceaccountsV1beta1CreateServiceAccountKeyResponse struct {
 	Token *string `json:"token,omitempty"`
 }
 
-// ServiceAccounts is the readable version of the service accounts.
+// ServiceAccounts is the service account to be created.
 type CastaiServiceaccountsV1beta1CreateServiceAccountRequestServiceAccount struct {
 	// Description is the description of the role binding.
 	Description *string `json:"description,omitempty"`
@@ -1662,6 +1741,7 @@ type CastaiServiceaccountsV1beta1CreateServiceAccountRequestServiceAccount struc
 
 // CreateServiceAccountResponse is the response for creating a service account.
 type CastaiServiceaccountsV1beta1CreateServiceAccountResponse struct {
+	// Author is the author of the service account.
 	Author      *CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor `json:"author,omitempty"`
 	CreatedAt   *time.Time                                                      `json:"createdAt,omitempty"`
 	Description *string                                                         `json:"description,omitempty"`
@@ -1670,7 +1750,7 @@ type CastaiServiceaccountsV1beta1CreateServiceAccountResponse struct {
 	Name        *string                                                         `json:"name,omitempty"`
 }
 
-// CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor defines model for castai.serviceaccounts.v1beta1.CreateServiceAccountResponse.Author.
+// Author is the author of the service account.
 type CastaiServiceaccountsV1beta1CreateServiceAccountResponseAuthor struct {
 	Email *string `json:"email,omitempty"`
 	Id    *string `json:"id,omitempty"`
@@ -1787,7 +1867,7 @@ type CastaiServiceaccountsV1beta1UpdateServiceAccountKeyResponse struct {
 	Prefix *string `json:"prefix,omitempty"`
 }
 
-// CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount defines model for castai.serviceaccounts.v1beta1.UpdateServiceAccountRequest.ServiceAccount.
+// ServiceAccount is the service account to be updated.
 type CastaiServiceaccountsV1beta1UpdateServiceAccountRequestServiceAccount struct {
 	Description *string `json:"description,omitempty"`
 	Name        string  `json:"name"`
@@ -2934,9 +3014,9 @@ type NodeconfigV1EKSConfig struct {
 
 	// List of supported image families (OSes) for EKS.
 	//
-	//  - FAMILY_AL2: Amazon Linux 2 (https://aws.amazon.com/amazon-linux-2/), EKS-specific.
-	//  - FAMILY_AL2023: Amazon Linux 2023 (https://aws.amazon.com/linux/amazon-linux-2023/), EKS-specific.
-	//  - FAMILY_BOTTLEROCKET: Bottlerocket (https://aws.amazon.com/bottlerocket/), EKS-specific.
+	//  - FAMILY_AL2: Amazon Linux 2 (https://aws.amazon.com/amazon-linux-2/).
+	//  - FAMILY_AL2023: Amazon Linux 2023 (https://aws.amazon.com/linux/amazon-linux-2023/).
+	//  - FAMILY_BOTTLEROCKET: Bottlerocket (https://aws.amazon.com/bottlerocket/).
 	ImageFamily  *NodeconfigV1EKSConfigImageFamily `json:"imageFamily,omitempty"`
 	ImdsHopLimit *int32                            `json:"imdsHopLimit"`
 	ImdsV1       *bool                             `json:"imdsV1"`
@@ -2974,9 +3054,9 @@ type NodeconfigV1EKSConfig struct {
 
 // List of supported image families (OSes) for EKS.
 //
-//   - FAMILY_AL2: Amazon Linux 2 (https://aws.amazon.com/amazon-linux-2/), EKS-specific.
-//   - FAMILY_AL2023: Amazon Linux 2023 (https://aws.amazon.com/linux/amazon-linux-2023/), EKS-specific.
-//   - FAMILY_BOTTLEROCKET: Bottlerocket (https://aws.amazon.com/bottlerocket/), EKS-specific.
+//   - FAMILY_AL2: Amazon Linux 2 (https://aws.amazon.com/amazon-linux-2/).
+//   - FAMILY_AL2023: Amazon Linux 2023 (https://aws.amazon.com/linux/amazon-linux-2023/).
+//   - FAMILY_BOTTLEROCKET: Bottlerocket (https://aws.amazon.com/bottlerocket/).
 type NodeconfigV1EKSConfigImageFamily string
 
 // NodeconfigV1GKEConfig defines model for nodeconfig.v1.GKEConfig.
@@ -3750,6 +3830,9 @@ type PoliciesV1Policies struct {
 	// Defines minimum and maximum amount of CPU the cluster can have.
 	ClusterLimits *PoliciesV1ClusterLimitsPolicy `json:"clusterLimits,omitempty"`
 
+	// Version of the default node template at the time when the policies were retrieved.
+	DefaultNodeTemplateVersion *string `json:"defaultNodeTemplateVersion"`
+
 	// Enable/disable all policies.
 	Enabled *bool `json:"enabled"`
 
@@ -4023,6 +4106,13 @@ type WorkloadoptimizationV1ApplyType string
 // WorkloadoptimizationV1AssignScalingPolicyWorkloadsResponse defines model for workloadoptimization.v1.AssignScalingPolicyWorkloadsResponse.
 type WorkloadoptimizationV1AssignScalingPolicyWorkloadsResponse = map[string]interface{}
 
+// WorkloadoptimizationV1ConfidenceSettings defines model for workloadoptimization.v1.ConfidenceSettings.
+type WorkloadoptimizationV1ConfidenceSettings struct {
+	// Defines the confidence threshold that's enough to automatically optimize a given workload vertically. Value must be [0:1].
+	// When not defined on scaling policy level or workload level, defaults to 0.9 (90%) confidence.
+	Threshold *float64 `json:"threshold"`
+}
+
 // WorkloadoptimizationV1ConfigurationChangedEventV2 defines model for workloadoptimization.v1.ConfigurationChangedEventV2.
 type WorkloadoptimizationV1ConfigurationChangedEventV2 struct {
 	Current  WorkloadoptimizationV1ConfigurationChangedV2 `json:"current"`
@@ -4033,6 +4123,15 @@ type WorkloadoptimizationV1ConfigurationChangedEventV2 struct {
 type WorkloadoptimizationV1ConfigurationChangedV2 struct {
 	ScalingPolicyConfig WorkloadoptimizationV1ScalingPolicyConfig `json:"scalingPolicyConfig"`
 	WorkloadConfig      WorkloadoptimizationV1WorkloadConfigV2    `json:"workloadConfig"`
+}
+
+// WorkloadoptimizationV1Constraints defines model for workloadoptimization.v1.Constraints.
+type WorkloadoptimizationV1Constraints struct {
+	// Defines the maximum value. For memory - this is in MiB, for CPU - this is in cores.
+	Max *float64 `json:"max"`
+
+	// Defines the minimum value. For memory - this is in MiB, for CPU - this is in cores.
+	Min *float64 `json:"min"`
 }
 
 // WorkloadoptimizationV1Container defines model for workloadoptimization.v1.Container.
@@ -4055,6 +4154,14 @@ type WorkloadoptimizationV1ContainerConstraints struct {
 	ContainerName string                                `json:"containerName"`
 	Cpu           *WorkloadoptimizationV1ResourceConfig `json:"cpu,omitempty"`
 	Memory        *WorkloadoptimizationV1ResourceConfig `json:"memory,omitempty"`
+}
+
+// WorkloadoptimizationV1ContainerConstraintsV2 defines model for workloadoptimization.v1.ContainerConstraintsV2.
+type WorkloadoptimizationV1ContainerConstraintsV2 struct {
+	// Defines the container name for which the constraints are for.
+	ContainerName string                             `json:"containerName"`
+	Cpu           *WorkloadoptimizationV1Constraints `json:"cpu,omitempty"`
+	Memory        *WorkloadoptimizationV1Constraints `json:"memory,omitempty"`
 }
 
 // WorkloadoptimizationV1CpuMetrics defines model for workloadoptimization.v1.CpuMetrics.
@@ -4118,6 +4225,11 @@ type WorkloadoptimizationV1GetAgentStatusResponseAgentStatus string
 // WorkloadoptimizationV1GetInstallCmdResponse defines model for workloadoptimization.v1.GetInstallCmdResponse.
 type WorkloadoptimizationV1GetInstallCmdResponse struct {
 	Script string `json:"script"`
+}
+
+// WorkloadoptimizationV1GetWorkloadEventResponse defines model for workloadoptimization.v1.GetWorkloadEventResponse.
+type WorkloadoptimizationV1GetWorkloadEventResponse struct {
+	Event WorkloadoptimizationV1WorkloadEvent `json:"event"`
 }
 
 // WorkloadoptimizationV1GetWorkloadResponse defines model for workloadoptimization.v1.GetWorkloadResponse.
@@ -4192,6 +4304,24 @@ type WorkloadoptimizationV1HPAConfigUpdate struct {
 	MinReplicas      *int32                                  `json:"minReplicas"`
 }
 
+// WorkloadoptimizationV1HorizontalOverrides defines model for workloadoptimization.v1.HorizontalOverrides.
+type WorkloadoptimizationV1HorizontalOverrides struct {
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption `json:"managementOption,omitempty"`
+
+	// Max replicas a workload can have.
+	MaxReplicas int32 `json:"maxReplicas"`
+
+	// Min replicas a workload can have.
+	MinReplicas int32                                   `json:"minReplicas"`
+	ScaleDown   *WorkloadoptimizationV1ScalingBehaviour `json:"scaleDown,omitempty"`
+
+	// Defines the window of time to make a horizontal scaling decision.
+	ShortAverageSeconds *int32 `json:"shortAverageSeconds"`
+}
+
 // WorkloadoptimizationV1InitiatedBy defines model for workloadoptimization.v1.InitiatedBy.
 type WorkloadoptimizationV1InitiatedBy struct {
 	Email *string `json:"email"`
@@ -4240,10 +4370,7 @@ type WorkloadoptimizationV1MemoryEventSettings struct {
 
 // WorkloadoptimizationV1NewWorkloadScalingPolicy defines model for workloadoptimization.v1.NewWorkloadScalingPolicy.
 type WorkloadoptimizationV1NewWorkloadScalingPolicy struct {
-	ApplyType WorkloadoptimizationV1ApplyType `json:"applyType"`
-
-	// Confidence threshold used for evaluation if the recommendation should be applied. If not set, the default value(0.9) will be used.
-	ConfidenceThreshold    *float64                                     `json:"confidenceThreshold"`
+	ApplyType              WorkloadoptimizationV1ApplyType              `json:"applyType"`
 	Name                   string                                       `json:"name"`
 	RecommendationPolicies WorkloadoptimizationV1RecommendationPolicies `json:"recommendationPolicies"`
 }
@@ -4276,6 +4403,8 @@ type WorkloadoptimizationV1RecommendationEventType string
 // WorkloadoptimizationV1RecommendationPolicies defines model for workloadoptimization.v1.RecommendationPolicies.
 type WorkloadoptimizationV1RecommendationPolicies struct {
 	AntiAffinity *WorkloadoptimizationV1AntiAffinitySettings `json:"antiAffinity,omitempty"`
+	ApplyType    WorkloadoptimizationV1ApplyType             `json:"applyType"`
+	Confidence   *WorkloadoptimizationV1ConfidenceSettings   `json:"confidence,omitempty"`
 	Cpu          WorkloadoptimizationV1ResourcePolicies      `json:"cpu"`
 	Downscaling  *WorkloadoptimizationV1DownscalingSettings  `json:"downscaling,omitempty"`
 
@@ -4324,6 +4453,11 @@ type WorkloadoptimizationV1ResourceConfig struct {
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
 
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption `json:"managementOption,omitempty"`
+
 	// Max values for the recommendation. For memory - this is in MiB, for CPU - this is in cores.
 	// If not set, there will be no upper bound for the recommendation (default behaviour).
 	Max *float64 `json:"max"`
@@ -4341,6 +4475,43 @@ type WorkloadoptimizationV1ResourceConfig struct {
 // MAX - the max function.
 type WorkloadoptimizationV1ResourceConfigFunction string
 
+// WorkloadoptimizationV1ResourceConfigOverrides defines model for workloadoptimization.v1.ResourceConfigOverrides.
+type WorkloadoptimizationV1ResourceConfigOverrides struct {
+	// The threshold of when to apply the recommendation - when diff of current requests and recommendation is greater than this, apply the recommendation.
+	ApplyThreshold *float64 `json:"applyThreshold"`
+
+	// The arguments for the function - i.e. for a quantile, this should be a [0, 1] float.
+	Args *[]string `json:"args,omitempty"`
+
+	// The function which to use when calculating the resource recommendation.
+	// QUANTILE - the quantile function.
+	// MAX - the max function.
+	Function *WorkloadoptimizationV1ResourceConfigOverridesFunction `json:"function,omitempty"`
+	Limit    *WorkloadoptimizationV1ResourceLimitStrategy           `json:"limit,omitempty"`
+
+	// Period of time over which the resource recommendation is calculated.
+	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
+
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption `json:"managementOption,omitempty"`
+
+	// Max values for the recommendation. For memory - this is in MiB, for CPU - this is in cores.
+	Max *float64 `json:"max"`
+
+	// Min values for the recommendation. For memory - this is in MiB, for CPU - this is in cores.
+	Min *float64 `json:"min"`
+
+	// The overhead for the recommendation, the formula is: (1 + overhead) * function(args).
+	Overhead *float64 `json:"overhead"`
+}
+
+// The function which to use when calculating the resource recommendation.
+// QUANTILE - the quantile function.
+// MAX - the max function.
+type WorkloadoptimizationV1ResourceConfigOverridesFunction string
+
 // WorkloadoptimizationV1ResourceConfigUpdate defines model for workloadoptimization.v1.ResourceConfigUpdate.
 type WorkloadoptimizationV1ResourceConfigUpdate struct {
 	// Max values for the recommendation. For memory - this is in MiB, for CPU - this is in cores.
@@ -4355,8 +4526,19 @@ type WorkloadoptimizationV1ResourceConfigUpdate struct {
 // WorkloadoptimizationV1ResourceLimitStrategy defines model for workloadoptimization.v1.ResourceLimitStrategy.
 type WorkloadoptimizationV1ResourceLimitStrategy struct {
 	Multiplier *float64 `json:"multiplier,omitempty"`
-	None       *bool    `json:"none,omitempty"`
+
+	// Type is the type of the limit strategy.
+	//
+	//  - NO_LIMIT: No limit removes the resource limit even if it was specified in the workload spec.
+	//  - MULTIPLIER: Multiplier used to calculate the resource limit. The final value is determined by multiplying the resource request by the specified factor.
+	Type WorkloadoptimizationV1ResourceLimitStrategyType `json:"type"`
 }
+
+// Type is the type of the limit strategy.
+//
+//   - NO_LIMIT: No limit removes the resource limit even if it was specified in the workload spec.
+//   - MULTIPLIER: Multiplier used to calculate the resource limit. The final value is determined by multiplying the resource request by the specified factor.
+type WorkloadoptimizationV1ResourceLimitStrategyType string
 
 // WorkloadoptimizationV1ResourceMetrics defines model for workloadoptimization.v1.ResourceMetrics.
 type WorkloadoptimizationV1ResourceMetrics struct {
@@ -4387,6 +4569,11 @@ type WorkloadoptimizationV1ResourcePolicies struct {
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
 
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption `json:"managementOption,omitempty"`
+
 	// Max values for the recommendation, applies to every container. For memory - this is in MiB, for CPU - this is in cores.
 	// If not set, there will be no upper bound for the recommendation (default behaviour). This value will be overridden if configured on workload level.
 	Max *float64 `json:"max"`
@@ -4415,6 +4602,12 @@ type WorkloadoptimizationV1ResourceQuantity struct {
 type WorkloadoptimizationV1Resources struct {
 	Limits   *WorkloadoptimizationV1ResourceQuantity `json:"limits,omitempty"`
 	Requests *WorkloadoptimizationV1ResourceQuantity `json:"requests,omitempty"`
+}
+
+// WorkloadoptimizationV1ScalingBehaviour defines model for workloadoptimization.v1.ScalingBehaviour.
+type WorkloadoptimizationV1ScalingBehaviour struct {
+	// Defines the minimum time to make a scaling decision after decision has been made.
+	StabilizationWindowSeconds *int32 `json:"stabilizationWindowSeconds"`
 }
 
 // WorkloadoptimizationV1ScalingPolicyAssigned defines model for workloadoptimization.v1.ScalingPolicyAssigned.
@@ -4477,10 +4670,7 @@ type WorkloadoptimizationV1UpdateWorkloadResponseV2 struct {
 
 // WorkloadoptimizationV1UpdateWorkloadScalingPolicy defines model for workloadoptimization.v1.UpdateWorkloadScalingPolicy.
 type WorkloadoptimizationV1UpdateWorkloadScalingPolicy struct {
-	ApplyType WorkloadoptimizationV1ApplyType `json:"applyType"`
-
-	// Confidence threshold used for evaluation if the recommendation should be applied. If not set, the default value(0.9) will be used.
-	ConfidenceThreshold    *float64                                     `json:"confidenceThreshold"`
+	ApplyType              WorkloadoptimizationV1ApplyType              `json:"applyType"`
 	Name                   string                                       `json:"name"`
 	RecommendationPolicies WorkloadoptimizationV1RecommendationPolicies `json:"recommendationPolicies"`
 }
@@ -4519,6 +4709,26 @@ type WorkloadoptimizationV1VPAConfigUpdate struct {
 	ManagementOption *WorkloadoptimizationV1ManagementOption             `json:"managementOption,omitempty"`
 	Memory           *WorkloadoptimizationV1WorkloadResourceConfigUpdate `json:"memory,omitempty"`
 	MemoryEvent      *WorkloadoptimizationV1MemoryEventSettings          `json:"memoryEvent,omitempty"`
+}
+
+// WorkloadoptimizationV1VerticalOverrides defines model for workloadoptimization.v1.VerticalOverrides.
+type WorkloadoptimizationV1VerticalOverrides struct {
+	AntiAffinity *WorkloadoptimizationV1AntiAffinitySettings `json:"antiAffinity,omitempty"`
+	ApplyType    *WorkloadoptimizationV1ApplyType            `json:"applyType,omitempty"`
+	Confidence   *WorkloadoptimizationV1ConfidenceSettings   `json:"confidence,omitempty"`
+
+	// Defines container specific overrides.
+	ContainerConstraints *[]WorkloadoptimizationV1ContainerConstraintsV2 `json:"containerConstraints,omitempty"`
+	Cpu                  *WorkloadoptimizationV1ResourceConfigOverrides  `json:"cpu,omitempty"`
+	Downscaling          *WorkloadoptimizationV1DownscalingSettings      `json:"downscaling,omitempty"`
+
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption        `json:"managementOption,omitempty"`
+	Memory           *WorkloadoptimizationV1ResourceConfigOverrides `json:"memory,omitempty"`
+	MemoryEvent      *WorkloadoptimizationV1MemoryEventSettings     `json:"memoryEvent,omitempty"`
+	Startup          *WorkloadoptimizationV1StartupSettings         `json:"startup,omitempty"`
 }
 
 // WorkloadoptimizationV1Workload defines model for workloadoptimization.v1.Workload.
@@ -4561,11 +4771,13 @@ type WorkloadoptimizationV1Workload struct {
 	Recommendation *WorkloadoptimizationV1WorkloadRecommendation `json:"recommendation,omitempty"`
 
 	// The number of replicas the workload should have, as defined on the workload spec.
-	Replicas         int32                                  `json:"replicas"`
-	ScalingPolicyId  string                                 `json:"scalingPolicyId"`
-	UpdatedAt        time.Time                              `json:"updatedAt"`
-	Version          string                                 `json:"version"`
-	WorkloadConfigV2 WorkloadoptimizationV1WorkloadConfigV2 `json:"workloadConfigV2"`
+	Replicas          int32                                    `json:"replicas"`
+	ScalingPolicyId   string                                   `json:"scalingPolicyId"`
+	ScalingPolicyName string                                   `json:"scalingPolicyName"`
+	UpdatedAt         time.Time                                `json:"updatedAt"`
+	Version           string                                   `json:"version"`
+	WorkloadConfigV2  WorkloadoptimizationV1WorkloadConfigV2   `json:"workloadConfigV2"`
+	WorkloadOverrides *WorkloadoptimizationV1WorkloadOverrides `json:"workloadOverrides,omitempty"`
 }
 
 // WorkloadoptimizationV1WorkloadConfigUpdateV2 defines model for workloadoptimization.v1.WorkloadConfigUpdateV2.
@@ -4619,6 +4831,12 @@ type WorkloadoptimizationV1WorkloadMetrics struct {
 	Pods       WorkloadoptimizationV1PodMetrics                `json:"pods"`
 }
 
+// WorkloadoptimizationV1WorkloadOverrides defines model for workloadoptimization.v1.WorkloadOverrides.
+type WorkloadoptimizationV1WorkloadOverrides struct {
+	Horizontal *WorkloadoptimizationV1HorizontalOverrides `json:"horizontal,omitempty"`
+	Vertical   *WorkloadoptimizationV1VerticalOverrides   `json:"vertical,omitempty"`
+}
+
 // WorkloadoptimizationV1WorkloadRecommendation defines model for workloadoptimization.v1.WorkloadRecommendation.
 type WorkloadoptimizationV1WorkloadRecommendation struct {
 	// Defines the confidence of the recommendation. Value between 0 and 1. 1 means max confidence, 0 means no confidence.
@@ -4639,6 +4857,11 @@ type WorkloadoptimizationV1WorkloadResourceConfigUpdate struct {
 	// Period of time over which the resource recommendation is calculated (default value is 24 hours).
 	LookBackPeriodSeconds *int32 `json:"lookBackPeriodSeconds"`
 
+	// Defines possible options for workload management.
+	// READ_ONLY - workload watched (metrics collected), but no actions may be performed by CAST AI.
+	// MANAGED - workload watched (metrics collected), CAST AI may perform actions on the workload.
+	ManagementOption *WorkloadoptimizationV1ManagementOption `json:"managementOption,omitempty"`
+
 	// Max values for the recommendation. For memory - this is in MiB, for CPU - this is in cores.
 	// If not set, there will be no upper bound for the recommendation (default behaviour).
 	Max *float64 `json:"max"`
@@ -4652,7 +4875,6 @@ type WorkloadoptimizationV1WorkloadResourceConfigUpdate struct {
 type WorkloadoptimizationV1WorkloadScalingPolicy struct {
 	ApplyType                           WorkloadoptimizationV1ApplyType              `json:"applyType"`
 	ClusterId                           string                                       `json:"clusterId"`
-	ConfidenceThreshold                 float64                                      `json:"confidenceThreshold"`
 	CreatedAt                           time.Time                                    `json:"createdAt"`
 	HasWorkloadsConfiguredByAnnotations bool                                         `json:"hasWorkloadsConfiguredByAnnotations"`
 	Id                                  string                                       `json:"id"`
@@ -4679,6 +4901,26 @@ type CommitmentsAPIGetCommitmentUsageHistoryParams struct {
 
 // CommitmentsAPIGetCommitmentUsageHistoryParamsAggregationInterval defines parameters for CommitmentsAPIGetCommitmentUsageHistory.
 type CommitmentsAPIGetCommitmentUsageHistoryParamsAggregationInterval string
+
+// CommitmentsAPIGetAWSReservedInstancesImportCMDParams defines parameters for CommitmentsAPIGetAWSReservedInstancesImportCMD.
+type CommitmentsAPIGetAWSReservedInstancesImportCMDParams struct {
+	// AWS region IDs
+	RegionIds *[]string `form:"regionIds,omitempty" json:"regionIds,omitempty"`
+}
+
+// CommitmentsAPIImportAWSReservedInstancesJSONBody defines parameters for CommitmentsAPIImportAWSReservedInstances.
+type CommitmentsAPIImportAWSReservedInstancesJSONBody = []CastaiInventoryV1beta1AWSRegionReservedInstances
+
+// CommitmentsAPIImportAWSReservedInstancesParams defines parameters for CommitmentsAPIImportAWSReservedInstances.
+type CommitmentsAPIImportAWSReservedInstancesParams struct {
+	// Behaviour
+	//
+	//  - OVERWRITE: Overwrite all existing commitments
+	Behaviour *CommitmentsAPIImportAWSReservedInstancesParamsBehaviour `form:"behaviour,omitempty" json:"behaviour,omitempty"`
+}
+
+// CommitmentsAPIImportAWSReservedInstancesParamsBehaviour defines parameters for CommitmentsAPIImportAWSReservedInstances.
+type CommitmentsAPIImportAWSReservedInstancesParamsBehaviour string
 
 // AuthTokenAPIListAuthTokensParams defines parameters for AuthTokenAPIListAuthTokens.
 type AuthTokenAPIListAuthTokensParams struct {
@@ -4733,6 +4975,9 @@ type NodeConfigurationAPIUpdateConfigurationJSONBody = NodeconfigV1NodeConfigura
 type NodeTemplatesAPIListNodeTemplatesParams struct {
 	// Flag whether to include the default template
 	IncludeDefault *bool `form:"includeDefault,omitempty" json:"includeDefault,omitempty"`
+
+	// Flag whether to exclude stats about template nodes.
+	ExcludeStats *bool `form:"excludeStats,omitempty" json:"excludeStats,omitempty"`
 }
 
 // NodeTemplatesAPICreateNodeTemplateJSONBody defines parameters for NodeTemplatesAPICreateNodeTemplate.
@@ -5045,6 +5290,12 @@ type WorkloadOptimizationAPIListWorkloadEventsParams struct {
 // WorkloadOptimizationAPIListWorkloadEventsParamsType defines parameters for WorkloadOptimizationAPIListWorkloadEvents.
 type WorkloadOptimizationAPIListWorkloadEventsParamsType string
 
+// WorkloadOptimizationAPIGetWorkloadEventParams defines parameters for WorkloadOptimizationAPIGetWorkloadEvent.
+type WorkloadOptimizationAPIGetWorkloadEventParams struct {
+	// The creation time of the event.
+	CreatedAt time.Time `form:"createdAt" json:"createdAt"`
+}
+
 // WorkloadOptimizationAPIGetWorkloadParams defines parameters for WorkloadOptimizationAPIGetWorkload.
 type WorkloadOptimizationAPIGetWorkloadParams struct {
 	IncludeMetrics *bool      `form:"includeMetrics,omitempty" json:"includeMetrics,omitempty"`
@@ -5071,6 +5322,9 @@ type CommitmentsAPIBatchDeleteCommitmentsJSONRequestBody = CommitmentsAPIBatchDe
 
 // CommitmentsAPIBatchUpdateCommitmentsJSONRequestBody defines body for CommitmentsAPIBatchUpdateCommitments for application/json ContentType.
 type CommitmentsAPIBatchUpdateCommitmentsJSONRequestBody = CommitmentsAPIBatchUpdateCommitmentsJSONBody
+
+// CommitmentsAPIImportAWSReservedInstancesJSONRequestBody defines body for CommitmentsAPIImportAWSReservedInstances for application/json ContentType.
+type CommitmentsAPIImportAWSReservedInstancesJSONRequestBody = CommitmentsAPIImportAWSReservedInstancesJSONBody
 
 // AuthTokenAPICreateAuthTokenJSONRequestBody defines body for AuthTokenAPICreateAuthToken for application/json ContentType.
 type AuthTokenAPICreateAuthTokenJSONRequestBody = AuthTokenAPICreateAuthTokenJSONBody

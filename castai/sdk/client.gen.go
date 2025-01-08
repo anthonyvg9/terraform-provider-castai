@@ -103,6 +103,17 @@ type ClientInterface interface {
 	// CommitmentsAPIGetCommitmentUsageHistory request
 	CommitmentsAPIGetCommitmentUsageHistory(ctx context.Context, organizationId string, commitmentId string, params *CommitmentsAPIGetCommitmentUsageHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CommitmentsAPIGetAWSReservedInstancesImportCMD request
+	CommitmentsAPIGetAWSReservedInstancesImportCMD(ctx context.Context, organizationId string, params *CommitmentsAPIGetAWSReservedInstancesImportCMDParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CommitmentsAPIGetAWSReservedInstancesImportScript request
+	CommitmentsAPIGetAWSReservedInstancesImportScript(ctx context.Context, organizationId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CommitmentsAPIImportAWSReservedInstances request with any body
+	CommitmentsAPIImportAWSReservedInstancesWithBody(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CommitmentsAPIImportAWSReservedInstances(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, body CommitmentsAPIImportAWSReservedInstancesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AuthTokenAPIListAuthTokens request
 	AuthTokenAPIListAuthTokens(ctx context.Context, params *AuthTokenAPIListAuthTokensParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -606,6 +617,9 @@ type ClientInterface interface {
 	// WorkloadOptimizationAPIListWorkloadEvents request
 	WorkloadOptimizationAPIListWorkloadEvents(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIListWorkloadEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// WorkloadOptimizationAPIGetWorkloadEvent request
+	WorkloadOptimizationAPIGetWorkloadEvent(ctx context.Context, clusterId string, eventId string, params *WorkloadOptimizationAPIGetWorkloadEventParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// WorkloadOptimizationAPIListWorkloads request
 	WorkloadOptimizationAPIListWorkloads(ctx context.Context, clusterId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -680,6 +694,54 @@ func (c *Client) CommitmentsAPIBatchUpdateCommitments(ctx context.Context, organ
 
 func (c *Client) CommitmentsAPIGetCommitmentUsageHistory(ctx context.Context, organizationId string, commitmentId string, params *CommitmentsAPIGetCommitmentUsageHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCommitmentsAPIGetCommitmentUsageHistoryRequest(c.Server, organizationId, commitmentId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CommitmentsAPIGetAWSReservedInstancesImportCMD(ctx context.Context, organizationId string, params *CommitmentsAPIGetAWSReservedInstancesImportCMDParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommitmentsAPIGetAWSReservedInstancesImportCMDRequest(c.Server, organizationId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CommitmentsAPIGetAWSReservedInstancesImportScript(ctx context.Context, organizationId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommitmentsAPIGetAWSReservedInstancesImportScriptRequest(c.Server, organizationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CommitmentsAPIImportAWSReservedInstancesWithBody(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommitmentsAPIImportAWSReservedInstancesRequestWithBody(c.Server, organizationId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CommitmentsAPIImportAWSReservedInstances(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, body CommitmentsAPIImportAWSReservedInstancesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommitmentsAPIImportAWSReservedInstancesRequest(c.Server, organizationId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2898,6 +2960,18 @@ func (c *Client) WorkloadOptimizationAPIListWorkloadEvents(ctx context.Context, 
 	return c.Client.Do(req)
 }
 
+func (c *Client) WorkloadOptimizationAPIGetWorkloadEvent(ctx context.Context, clusterId string, eventId string, params *WorkloadOptimizationAPIGetWorkloadEventParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWorkloadOptimizationAPIGetWorkloadEventRequest(c.Server, clusterId, eventId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) WorkloadOptimizationAPIListWorkloads(ctx context.Context, clusterId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewWorkloadOptimizationAPIListWorkloadsRequest(c.Server, clusterId)
 	if err != nil {
@@ -3165,6 +3239,161 @@ func NewCommitmentsAPIGetCommitmentUsageHistoryRequest(server string, organizati
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewCommitmentsAPIGetAWSReservedInstancesImportCMDRequest generates requests for CommitmentsAPIGetAWSReservedInstancesImportCMD
+func NewCommitmentsAPIGetAWSReservedInstancesImportCMDRequest(server string, organizationId string, params *CommitmentsAPIGetAWSReservedInstancesImportCMDParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "organizationId", runtime.ParamLocationPath, organizationId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/savings/v1beta/organizations/%s/commitments:getAWSReservedInstancesImportCMD", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.RegionIds != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "regionIds", runtime.ParamLocationQuery, *params.RegionIds); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCommitmentsAPIGetAWSReservedInstancesImportScriptRequest generates requests for CommitmentsAPIGetAWSReservedInstancesImportScript
+func NewCommitmentsAPIGetAWSReservedInstancesImportScriptRequest(server string, organizationId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "organizationId", runtime.ParamLocationPath, organizationId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/savings/v1beta/organizations/%s/commitments:getAWSReservedInstancesImportScript", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCommitmentsAPIImportAWSReservedInstancesRequest calls the generic CommitmentsAPIImportAWSReservedInstances builder with application/json body
+func NewCommitmentsAPIImportAWSReservedInstancesRequest(server string, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, body CommitmentsAPIImportAWSReservedInstancesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCommitmentsAPIImportAWSReservedInstancesRequestWithBody(server, organizationId, params, "application/json", bodyReader)
+}
+
+// NewCommitmentsAPIImportAWSReservedInstancesRequestWithBody generates requests for CommitmentsAPIImportAWSReservedInstances with any type of body
+func NewCommitmentsAPIImportAWSReservedInstancesRequestWithBody(server string, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "organizationId", runtime.ParamLocationPath, organizationId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/savings/v1beta/organizations/%s/commitments:importAWSReservedInstances", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Behaviour != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "behaviour", runtime.ParamLocationQuery, *params.Behaviour); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -4153,6 +4382,22 @@ func NewNodeTemplatesAPIListNodeTemplatesRequest(server string, clusterId string
 	if params.IncludeDefault != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDefault", runtime.ParamLocationQuery, *params.IncludeDefault); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.ExcludeStats != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "excludeStats", runtime.ParamLocationQuery, *params.ExcludeStats); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -9456,6 +9701,63 @@ func NewWorkloadOptimizationAPIListWorkloadEventsRequest(server string, clusterI
 	return req, nil
 }
 
+// NewWorkloadOptimizationAPIGetWorkloadEventRequest generates requests for WorkloadOptimizationAPIGetWorkloadEvent
+func NewWorkloadOptimizationAPIGetWorkloadEventRequest(server string, clusterId string, eventId string, params *WorkloadOptimizationAPIGetWorkloadEventParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clusterId", runtime.ParamLocationPath, clusterId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "eventId", runtime.ParamLocationPath, eventId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/workload-autoscaling/clusters/%s/workload-events/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdAt", runtime.ParamLocationQuery, params.CreatedAt); err != nil {
+		return nil, err
+	} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+		return nil, err
+	} else {
+		for k, v := range parsed {
+			for _, v2 := range v {
+				queryValues.Add(k, v2)
+			}
+		}
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewWorkloadOptimizationAPIListWorkloadsRequest generates requests for WorkloadOptimizationAPIListWorkloads
 func NewWorkloadOptimizationAPIListWorkloadsRequest(server string, clusterId string) (*http.Request, error) {
 	var err error
@@ -9859,6 +10161,17 @@ type ClientWithResponsesInterface interface {
 
 	// CommitmentsAPIGetCommitmentUsageHistory request
 	CommitmentsAPIGetCommitmentUsageHistoryWithResponse(ctx context.Context, organizationId string, commitmentId string, params *CommitmentsAPIGetCommitmentUsageHistoryParams) (*CommitmentsAPIGetCommitmentUsageHistoryResponse, error)
+
+	// CommitmentsAPIGetAWSReservedInstancesImportCMD request
+	CommitmentsAPIGetAWSReservedInstancesImportCMDWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIGetAWSReservedInstancesImportCMDParams) (*CommitmentsAPIGetAWSReservedInstancesImportCMDResponse, error)
+
+	// CommitmentsAPIGetAWSReservedInstancesImportScript request
+	CommitmentsAPIGetAWSReservedInstancesImportScriptWithResponse(ctx context.Context, organizationId string) (*CommitmentsAPIGetAWSReservedInstancesImportScriptResponse, error)
+
+	// CommitmentsAPIImportAWSReservedInstances request  with any body
+	CommitmentsAPIImportAWSReservedInstancesWithBodyWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, contentType string, body io.Reader) (*CommitmentsAPIImportAWSReservedInstancesResponse, error)
+
+	CommitmentsAPIImportAWSReservedInstancesWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, body CommitmentsAPIImportAWSReservedInstancesJSONRequestBody) (*CommitmentsAPIImportAWSReservedInstancesResponse, error)
 
 	// AuthTokenAPIListAuthTokens request
 	AuthTokenAPIListAuthTokensWithResponse(ctx context.Context, params *AuthTokenAPIListAuthTokensParams) (*AuthTokenAPIListAuthTokensResponse, error)
@@ -10363,6 +10676,9 @@ type ClientWithResponsesInterface interface {
 	// WorkloadOptimizationAPIListWorkloadEvents request
 	WorkloadOptimizationAPIListWorkloadEventsWithResponse(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIListWorkloadEventsParams) (*WorkloadOptimizationAPIListWorkloadEventsResponse, error)
 
+	// WorkloadOptimizationAPIGetWorkloadEvent request
+	WorkloadOptimizationAPIGetWorkloadEventWithResponse(ctx context.Context, clusterId string, eventId string, params *WorkloadOptimizationAPIGetWorkloadEventParams) (*WorkloadOptimizationAPIGetWorkloadEventResponse, error)
+
 	// WorkloadOptimizationAPIListWorkloads request
 	WorkloadOptimizationAPIListWorkloadsWithResponse(ctx context.Context, clusterId string) (*WorkloadOptimizationAPIListWorkloadsResponse, error)
 
@@ -10481,6 +10797,95 @@ func (r CommitmentsAPIGetCommitmentUsageHistoryResponse) StatusCode() int {
 // TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 // Body returns body of byte array
 func (r CommitmentsAPIGetCommitmentUsageHistoryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
+type CommitmentsAPIGetAWSReservedInstancesImportCMDResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CastaiInventoryV1beta1GetAWSReservedInstancesImportCMDResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CommitmentsAPIGetAWSReservedInstancesImportCMDResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CommitmentsAPIGetAWSReservedInstancesImportCMDResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r CommitmentsAPIGetAWSReservedInstancesImportCMDResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
+type CommitmentsAPIGetAWSReservedInstancesImportScriptResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r CommitmentsAPIGetAWSReservedInstancesImportScriptResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CommitmentsAPIGetAWSReservedInstancesImportScriptResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r CommitmentsAPIGetAWSReservedInstancesImportScriptResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
+type CommitmentsAPIImportAWSReservedInstancesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *map[string]interface{}
+}
+
+// Status returns HTTPResponse.Status
+func (r CommitmentsAPIImportAWSReservedInstancesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CommitmentsAPIImportAWSReservedInstancesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r CommitmentsAPIImportAWSReservedInstancesResponse) GetBody() []byte {
 	return r.Body
 }
 
@@ -14534,6 +14939,36 @@ func (r WorkloadOptimizationAPIListWorkloadEventsResponse) GetBody() []byte {
 
 // TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 
+type WorkloadOptimizationAPIGetWorkloadEventResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WorkloadoptimizationV1GetWorkloadEventResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r WorkloadOptimizationAPIGetWorkloadEventResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r WorkloadOptimizationAPIGetWorkloadEventResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r WorkloadOptimizationAPIGetWorkloadEventResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
 type WorkloadOptimizationAPIListWorkloadsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -14784,6 +15219,41 @@ func (c *ClientWithResponses) CommitmentsAPIGetCommitmentUsageHistoryWithRespons
 		return nil, err
 	}
 	return ParseCommitmentsAPIGetCommitmentUsageHistoryResponse(rsp)
+}
+
+// CommitmentsAPIGetAWSReservedInstancesImportCMDWithResponse request returning *CommitmentsAPIGetAWSReservedInstancesImportCMDResponse
+func (c *ClientWithResponses) CommitmentsAPIGetAWSReservedInstancesImportCMDWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIGetAWSReservedInstancesImportCMDParams) (*CommitmentsAPIGetAWSReservedInstancesImportCMDResponse, error) {
+	rsp, err := c.CommitmentsAPIGetAWSReservedInstancesImportCMD(ctx, organizationId, params)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitmentsAPIGetAWSReservedInstancesImportCMDResponse(rsp)
+}
+
+// CommitmentsAPIGetAWSReservedInstancesImportScriptWithResponse request returning *CommitmentsAPIGetAWSReservedInstancesImportScriptResponse
+func (c *ClientWithResponses) CommitmentsAPIGetAWSReservedInstancesImportScriptWithResponse(ctx context.Context, organizationId string) (*CommitmentsAPIGetAWSReservedInstancesImportScriptResponse, error) {
+	rsp, err := c.CommitmentsAPIGetAWSReservedInstancesImportScript(ctx, organizationId)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitmentsAPIGetAWSReservedInstancesImportScriptResponse(rsp)
+}
+
+// CommitmentsAPIImportAWSReservedInstancesWithBodyWithResponse request with arbitrary body returning *CommitmentsAPIImportAWSReservedInstancesResponse
+func (c *ClientWithResponses) CommitmentsAPIImportAWSReservedInstancesWithBodyWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, contentType string, body io.Reader) (*CommitmentsAPIImportAWSReservedInstancesResponse, error) {
+	rsp, err := c.CommitmentsAPIImportAWSReservedInstancesWithBody(ctx, organizationId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitmentsAPIImportAWSReservedInstancesResponse(rsp)
+}
+
+func (c *ClientWithResponses) CommitmentsAPIImportAWSReservedInstancesWithResponse(ctx context.Context, organizationId string, params *CommitmentsAPIImportAWSReservedInstancesParams, body CommitmentsAPIImportAWSReservedInstancesJSONRequestBody) (*CommitmentsAPIImportAWSReservedInstancesResponse, error) {
+	rsp, err := c.CommitmentsAPIImportAWSReservedInstances(ctx, organizationId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitmentsAPIImportAWSReservedInstancesResponse(rsp)
 }
 
 // AuthTokenAPIListAuthTokensWithResponse request returning *AuthTokenAPIListAuthTokensResponse
@@ -16393,6 +16863,15 @@ func (c *ClientWithResponses) WorkloadOptimizationAPIListWorkloadEventsWithRespo
 	return ParseWorkloadOptimizationAPIListWorkloadEventsResponse(rsp)
 }
 
+// WorkloadOptimizationAPIGetWorkloadEventWithResponse request returning *WorkloadOptimizationAPIGetWorkloadEventResponse
+func (c *ClientWithResponses) WorkloadOptimizationAPIGetWorkloadEventWithResponse(ctx context.Context, clusterId string, eventId string, params *WorkloadOptimizationAPIGetWorkloadEventParams) (*WorkloadOptimizationAPIGetWorkloadEventResponse, error) {
+	rsp, err := c.WorkloadOptimizationAPIGetWorkloadEvent(ctx, clusterId, eventId, params)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWorkloadOptimizationAPIGetWorkloadEventResponse(rsp)
+}
+
 // WorkloadOptimizationAPIListWorkloadsWithResponse request returning *WorkloadOptimizationAPIListWorkloadsResponse
 func (c *ClientWithResponses) WorkloadOptimizationAPIListWorkloadsWithResponse(ctx context.Context, clusterId string) (*WorkloadOptimizationAPIListWorkloadsResponse, error) {
 	rsp, err := c.WorkloadOptimizationAPIListWorkloads(ctx, clusterId)
@@ -16532,6 +17011,74 @@ func ParseCommitmentsAPIGetCommitmentUsageHistoryResponse(rsp *http.Response) (*
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CastaiInventoryV1beta1GetCommitmentUsageHistoryResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCommitmentsAPIGetAWSReservedInstancesImportCMDResponse parses an HTTP response from a CommitmentsAPIGetAWSReservedInstancesImportCMDWithResponse call
+func ParseCommitmentsAPIGetAWSReservedInstancesImportCMDResponse(rsp *http.Response) (*CommitmentsAPIGetAWSReservedInstancesImportCMDResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CommitmentsAPIGetAWSReservedInstancesImportCMDResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CastaiInventoryV1beta1GetAWSReservedInstancesImportCMDResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCommitmentsAPIGetAWSReservedInstancesImportScriptResponse parses an HTTP response from a CommitmentsAPIGetAWSReservedInstancesImportScriptWithResponse call
+func ParseCommitmentsAPIGetAWSReservedInstancesImportScriptResponse(rsp *http.Response) (*CommitmentsAPIGetAWSReservedInstancesImportScriptResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CommitmentsAPIGetAWSReservedInstancesImportScriptResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseCommitmentsAPIImportAWSReservedInstancesResponse parses an HTTP response from a CommitmentsAPIImportAWSReservedInstancesWithResponse call
+func ParseCommitmentsAPIImportAWSReservedInstancesResponse(rsp *http.Response) (*CommitmentsAPIImportAWSReservedInstancesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CommitmentsAPIImportAWSReservedInstancesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -20016,6 +20563,32 @@ func ParseWorkloadOptimizationAPIListWorkloadEventsResponse(rsp *http.Response) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest WorkloadoptimizationV1ListWorkloadEventsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseWorkloadOptimizationAPIGetWorkloadEventResponse parses an HTTP response from a WorkloadOptimizationAPIGetWorkloadEventWithResponse call
+func ParseWorkloadOptimizationAPIGetWorkloadEventResponse(rsp *http.Response) (*WorkloadOptimizationAPIGetWorkloadEventResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &WorkloadOptimizationAPIGetWorkloadEventResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkloadoptimizationV1GetWorkloadEventResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

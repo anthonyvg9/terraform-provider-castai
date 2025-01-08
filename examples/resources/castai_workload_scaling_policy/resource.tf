@@ -16,6 +16,11 @@ resource "castai_workload_scaling_policy" "services" {
     function        = "MAX"
     overhead        = 0.35
     apply_threshold = 0.2
+    limit {
+      type       = "MULTIPLIER"
+      multiplier = 1.5
+    }
+    management_option = "READ_ONLY"
   }
   startup {
     period_seconds = 240
