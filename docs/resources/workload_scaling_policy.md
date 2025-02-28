@@ -21,18 +21,23 @@ resource "castai_workload_scaling_policy" "services" {
   apply_type        = "IMMEDIATE"
   management_option = "MANAGED"
   cpu {
-    function                 = "QUANTILE"
-    overhead                 = 0.15
-    apply_threshold          = 0.1
+    function = "QUANTILE"
+    overhead = 0.15
+    apply_threshold_strategy {
+      type       = "PERCENTAGE"
+      percentage = 0.1
+    }
     args                     = ["0.9"]
     look_back_period_seconds = 172800
     min                      = 0.1
     max                      = 1
   }
   memory {
-    function        = "MAX"
-    overhead        = 0.35
-    apply_threshold = 0.2
+    function = "MAX"
+    overhead = 0.35
+    apply_threshold_strategy {
+      type = "DEFAULT_ADAPTIVE"
+    }
     limit {
       type       = "MULTIPLIER"
       multiplier = 1.5
@@ -50,6 +55,9 @@ resource "castai_workload_scaling_policy" "services" {
   }
   anti_affinity {
     consider_anti_affinity = false
+  }
+  confidence {
+    threshold = 0.9
   }
 }
 ```
@@ -73,6 +81,7 @@ resource "castai_workload_scaling_policy" "services" {
 ### Optional
 
 - `anti_affinity` (Block List, Max: 1) (see [below for nested schema](#nestedblock--anti_affinity))
+- `confidence` (Block List, Max: 1) Defines the confidence settings for applying recommendations. (see [below for nested schema](#nestedblock--confidence))
 - `downscaling` (Block List, Max: 1) (see [below for nested schema](#nestedblock--downscaling))
 - `memory_event` (Block List, Max: 1) (see [below for nested schema](#nestedblock--memory_event))
 - `startup` (Block List, Max: 1) (see [below for nested schema](#nestedblock--startup))
@@ -87,7 +96,8 @@ resource "castai_workload_scaling_policy" "services" {
 
 Optional:
 
-- `apply_threshold` (Number) The threshold of when to apply the recommendation. Recommendation will be applied when diff of current requests and new recommendation is greater than set value
+- `apply_threshold` (Number, Deprecated) The threshold of when to apply the recommendation. Recommendation will be applied when diff of current requests and new recommendation is greater than set value
+- `apply_threshold_strategy` (Block List, Max: 1) Resource apply threshold strategy settings. The default strategy is `PERCENTAGE` with percentage value set to 0.1. (see [below for nested schema](#nestedblock--cpu--apply_threshold_strategy))
 - `args` (List of String) The arguments for the function - i.e. for `QUANTILE` this should be a [0, 1] float. `MAX` doesn't accept any args
 - `function` (String) The function used to calculate the resource recommendation. Supported values: `QUANTILE`, `MAX`
 - `limit` (Block List, Max: 1) Resource limit settings (see [below for nested schema](#nestedblock--cpu--limit))
@@ -96,6 +106,27 @@ Optional:
 - `max` (Number) Max values for the recommendation, applies to every container. For memory - this is in MiB, for CPU - this is in cores.
 - `min` (Number) Min values for the recommendation, applies to every container. For memory - this is in MiB, for CPU - this is in cores.
 - `overhead` (Number) Overhead for the recommendation, e.g. `0.1` will result in 10% higher recommendation
+
+<a id="nestedblock--cpu--apply_threshold_strategy"></a>
+### Nested Schema for `cpu.apply_threshold_strategy`
+
+Required:
+
+- `type` (String) Defines apply theshold strategy type.
+	- PERCENTAGE - recommendation will be applied when diff of current requests and new recommendation is greater than set value
+    - DEFAULT_ADAPTIVE - will pick larger threshold percentage for small workloads and smaller percentage for large workloads.
+    - CUSTOM_ADAPTIVE - works in same way as DEFAULT_ADAPTIVE, but it allows to tweak parameters of adaptive threshold formula: percentage = numerator/(currentRequest + denominator)^exponent. This strategy is for advance use cases, we recommend to use DEFAULT_ADAPTIVE strategy.
+
+Optional:
+
+- `denominator` (String) If denominator is close or equal to 0, the threshold will be much bigger for small values.For example when numerator, exponent is 1 and denominator is 0 the threshold for 0.5 req. CPU will be 200%.It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `exponent` (Number) The exponent changes how fast the curve is going down. The smaller value will cause that we won’t pick extremely small number for big resources, for example:
+	- if numerator is 0, denominator is 1, and exponent is 1, for 50 CPU we will pick 2% threshold
+	- if numerator is 0, denominator is 1, and exponent is 0.8, for 50 CPU we will pick 4.3% threshold
+	It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `numerator` (Number) The numerator affects vertical stretch of function used in adaptive threshold - smaller number will create smaller threshold.It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `percentage` (Number) Percentage of a how much difference should there be between the current pod requests and the new recommendation. It must be defined for the PERCENTAGE strategy.
+
 
 <a id="nestedblock--cpu--limit"></a>
 ### Nested Schema for `cpu.limit`
@@ -117,7 +148,8 @@ Optional:
 
 Optional:
 
-- `apply_threshold` (Number) The threshold of when to apply the recommendation. Recommendation will be applied when diff of current requests and new recommendation is greater than set value
+- `apply_threshold` (Number, Deprecated) The threshold of when to apply the recommendation. Recommendation will be applied when diff of current requests and new recommendation is greater than set value
+- `apply_threshold_strategy` (Block List, Max: 1) Resource apply threshold strategy settings. The default strategy is `PERCENTAGE` with percentage value set to 0.1. (see [below for nested schema](#nestedblock--memory--apply_threshold_strategy))
 - `args` (List of String) The arguments for the function - i.e. for `QUANTILE` this should be a [0, 1] float. `MAX` doesn't accept any args
 - `function` (String) The function used to calculate the resource recommendation. Supported values: `QUANTILE`, `MAX`
 - `limit` (Block List, Max: 1) Resource limit settings (see [below for nested schema](#nestedblock--memory--limit))
@@ -126,6 +158,27 @@ Optional:
 - `max` (Number) Max values for the recommendation, applies to every container. For memory - this is in MiB, for CPU - this is in cores.
 - `min` (Number) Min values for the recommendation, applies to every container. For memory - this is in MiB, for CPU - this is in cores.
 - `overhead` (Number) Overhead for the recommendation, e.g. `0.1` will result in 10% higher recommendation
+
+<a id="nestedblock--memory--apply_threshold_strategy"></a>
+### Nested Schema for `memory.apply_threshold_strategy`
+
+Required:
+
+- `type` (String) Defines apply theshold strategy type.
+	- PERCENTAGE - recommendation will be applied when diff of current requests and new recommendation is greater than set value
+    - DEFAULT_ADAPTIVE - will pick larger threshold percentage for small workloads and smaller percentage for large workloads.
+    - CUSTOM_ADAPTIVE - works in same way as DEFAULT_ADAPTIVE, but it allows to tweak parameters of adaptive threshold formula: percentage = numerator/(currentRequest + denominator)^exponent. This strategy is for advance use cases, we recommend to use DEFAULT_ADAPTIVE strategy.
+
+Optional:
+
+- `denominator` (String) If denominator is close or equal to 0, the threshold will be much bigger for small values.For example when numerator, exponent is 1 and denominator is 0 the threshold for 0.5 req. CPU will be 200%.It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `exponent` (Number) The exponent changes how fast the curve is going down. The smaller value will cause that we won’t pick extremely small number for big resources, for example:
+	- if numerator is 0, denominator is 1, and exponent is 1, for 50 CPU we will pick 2% threshold
+	- if numerator is 0, denominator is 1, and exponent is 0.8, for 50 CPU we will pick 4.3% threshold
+	It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `numerator` (Number) The numerator affects vertical stretch of function used in adaptive threshold - smaller number will create smaller threshold.It must be defined for the CUSTOM_ADAPTIVE strategy.
+- `percentage` (Number) Percentage of a how much difference should there be between the current pod requests and the new recommendation. It must be defined for the PERCENTAGE strategy.
+
 
 <a id="nestedblock--memory--limit"></a>
 ### Nested Schema for `memory.limit`
@@ -149,6 +202,14 @@ Optional:
 
 - `consider_anti_affinity` (Boolean) Defines if anti-affinity should be considered when scaling the workload.
 	If enabled, requiring host ports, or having anti-affinity on hostname will force all recommendations to be deferred.
+
+
+<a id="nestedblock--confidence"></a>
+### Nested Schema for `confidence`
+
+Optional:
+
+- `threshold` (Number) Defines the confidence threshold for applying recommendations. The smaller number indicates that we require fewer metrics data points to apply recommendations - changing this value can cause applying less precise recommendations. Do not change the default unless you want to optimize with fewer data points (e.g., short-lived workloads).
 
 
 <a id="nestedblock--downscaling"></a>
@@ -191,12 +252,117 @@ Optional:
 - `read` (String)
 - `update` (String)
 
-
 ## Importing
+
+For each connected cluster, a default scaling policy is created. An existing scaling policy can be imported into the
+Terraform state using the `terraform import` command or the [`import`](https://developer.hashicorp.com/terraform/language/import#syntax) block (recommended for Terraform 1.5.0+).
+
+Using the `import` block is a simpler and more convenient way of importing resources.
+
+### Import using `import` block
+
+#### Import a single scaling policy
+
+1. Create an `import.tf` file with the following content:
+   ```tf
+   import {
+   	 to       = castai_workload_scaling_policy.default
+   	 id       = "<cluster_id>/<policy_id_or_name>" # e.g. "ff4c2211-3511-4d95-b6de-2919fc3287a3/default"
+   }
+   ```
+
+2. Run the `terraform import` command:
+
+   ```shell
+   terraform plan -out=import.plan -var-file=tf.vars -generate-config-out=generated.tf
+   ```
+
+3. Review the `generated.tf` file and ensure the imported scaling policy is correct. Terraform will generate this file by setting values equal to zero for certain configuration parameters.
+
+   For example:
+
+   ```hcl
+   cpu {
+     look_back_period_seconds = 0
+   }
+
+4. Apply the import plan:
+
+   ```shell
+   terraform apply "import.plan"
+   ```
+
+#### Import multiple scaling policies
+
+To import multiple scaling policies, you need to know the cluster IDs and the policy names. The `for_each` cannot be
+used when generating configuration. As a result, you need to define the policy properties yourself, or you
+can [import a single policy](#import-a-single-scaling-policy) and then use it as a template for other policies.
+
+> [!NOTE]
+> The below example assumes that you want to import the "default" scaling policy for multiple clusters. If you want to
+> import
+> scaling policies with different names, you need to adjust the `id` parameter in the `import` block accordingly.
+
+1. Create the `import.tf` file with the following content:
+
+   ```tf
+   locals {
+   	 policies = {
+   		 "<cluster_name>" = "<cluster_id>"
+   		 "<cluster_name>" = "<cluster_id>"
+   		 "<cluster_name>" = "<cluster_id>"
+   	 }
+   }
+
+   import {
+   	 for_each = local.policies
+   	 to       = castai_workload_scaling_policy.default[each.key]
+   	 id       = "${each.value}/default"
+   }
+
+   resource "castai_workload_scaling_policy" "default" {
+   	 for_each          = local.policies
+   	 cluster_id        = each.value
+   	 apply_type        = "IMMEDIATE"
+   	 management_option = "READ_ONLY"
+   	 name              = "default"
+   	 cpu {
+   		 apply_threshold          = 0.1
+   		 args = ["0.80"]
+   		 function                 = "QUANTILE"
+   		 look_back_period_seconds = 86400
+   		 min                      = 0.01
+   	 }
+   	 memory {
+   		 apply_threshold          = 0.1
+   		 args = []
+   		 function                 = "MAX"
+   		 look_back_period_seconds = 86400
+   		 min                      = 10
+   		 overhead                 = 0.1
+   	 }
+   }
+   ```
+
+2. Run the `terraform import` command and review the import plan:
+
+   ```shell
+   terraform plan -out=import.plan -var-file=tf.vars
+   ```
+
+3. Apply the import plan:
+
+   ```shell
+   terraform apply "import.plan"
+   ```
+
+### Import using the `terraform import` command
+
 You can use the `terraform import` command to import existing scaling policy to Terraform state.
 
 To import a resource, first write a resource block for it in your configuration, establishing the name by which
 it will be known to Terraform:
+
 ```hcl
 resource "castai_workload_scaling_policy" "services" {
   # ...
@@ -212,3 +378,9 @@ If you are using CAST AI Terraform modules, import command will be slightly diff
 ```shell
 $ terraform import 'module.castai-eks-cluster.castai_workload_scaling_policy.this["services"]' <cluster_id>/services
 ```
+
+## Upsert scaling policy
+
+The recommended way is to [import](#importing) the scaling policy and then apply the changes to the policy.
+However, if that’s not possible, you can define the default policy resource yourself. The CAST AI Terraform provider
+will update the existing policy instead of returning an error.

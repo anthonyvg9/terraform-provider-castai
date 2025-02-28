@@ -122,6 +122,21 @@ func resourceRebalancingSchedule() *schema.Resource {
 							Optional:    true,
 							Description: "When enabled rebalancing will also consider problematic pods (pods without controller, job pods, pods with removal-disabled annotation) as not-problematic.",
 						},
+						"aggressive_mode_config": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"ignore_local_persistent_volumes": {
+										Type:        schema.TypeBool,
+										Required:    true,
+										Description: "Rebalance workloads using local-path Persistent Volumes. THIS WILL RESULT IN DATA LOSS.",
+									},
+								},
+							},
+							Description: "Advanced configuration for aggressive rebalancing mode.",
+						},
 						"execution_conditions": {
 							Type:     schema.TypeList,
 							MaxItems: 1,
@@ -295,6 +310,14 @@ func stateToSchedule(d *schema.ResourceData) (*sdk.ScheduledrebalancingV1Rebalan
 
 		aggresiveMode := readOptionalValue[bool](launchConfigurationData, "aggressive_mode")
 
+		var aggressiveModeConfig *sdk.ScheduledrebalancingV1AggressiveModeConfig
+		aggressiveModeConfigSection := launchConfigurationData["aggressive_mode_config"].([]any)
+		if len(aggressiveModeConfigSection) != 0 {
+			aggressiveModeConfig = &sdk.ScheduledrebalancingV1AggressiveModeConfig{
+				IgnoreLocalPersistentVolumes: lo.ToPtr(aggressiveModeConfigSection[0].(map[string]any)["ignore_local_persistent_volumes"].(bool)),
+			}
+		}
+
 		targetAlgorithm := sdk.ScheduledrebalancingV1TargetNodeSelectionAlgorithm(*readOptionalValue[string](launchConfigurationData, "target_node_selection_algorithm"))
 		result.LaunchConfiguration = sdk.ScheduledrebalancingV1LaunchConfiguration{
 			NodeTtlSeconds:   readOptionalNumber[int, int32](launchConfigurationData, "node_ttl_seconds"),
@@ -304,6 +327,7 @@ func stateToSchedule(d *schema.ResourceData) (*sdk.ScheduledrebalancingV1Rebalan
 				KeepDrainTimeoutNodes: keepDrainTimeoutNodes,
 				ExecutionConditions:   executionConditions,
 				AggressiveMode:        aggresiveMode,
+				AggressiveModeConfig:  aggressiveModeConfig,
 			},
 			Selector:                     selector,
 			TargetNodeSelectionAlgorithm: &targetAlgorithm,
@@ -336,6 +360,13 @@ func scheduleToState(schedule *sdk.ScheduledrebalancingV1RebalancingSchedule, d 
 		launchConfig["keep_drain_timeout_nodes"] = schedule.LaunchConfiguration.RebalancingOptions.KeepDrainTimeoutNodes
 		launchConfig["aggressive_mode"] = schedule.LaunchConfiguration.RebalancingOptions.AggressiveMode
 		launchConfig["target_node_selection_algorithm"] = schedule.LaunchConfiguration.TargetNodeSelectionAlgorithm
+		if schedule.LaunchConfiguration.RebalancingOptions.AggressiveModeConfig != nil {
+			launchConfig["aggressive_mode_config"] = []map[string]any{
+				{
+					"ignore_local_persistent_volumes": schedule.LaunchConfiguration.RebalancingOptions.AggressiveModeConfig.IgnoreLocalPersistentVolumes,
+				},
+			}
+		}
 
 		executionConditions := schedule.LaunchConfiguration.RebalancingOptions.ExecutionConditions
 		if executionConditions != nil {
@@ -409,7 +440,7 @@ func nullifySelectorRequirements(requirements *[]sdk.ScheduledrebalancingV1NodeS
 	}
 }
 
-func getRebalancingScheduleByName(ctx context.Context, client *sdk.ClientWithResponses, name string) (*sdk.ScheduledrebalancingV1RebalancingSchedule, error) {
+func getRebalancingScheduleByName(ctx context.Context, client sdk.ClientWithResponsesInterface, name string) (*sdk.ScheduledrebalancingV1RebalancingSchedule, error) {
 	resp, err := client.ScheduledRebalancingAPIListRebalancingSchedulesWithResponse(ctx)
 	if checkErr := sdk.CheckOKResponse(resp, err); checkErr != nil {
 		return nil, checkErr
@@ -424,7 +455,7 @@ func getRebalancingScheduleByName(ctx context.Context, client *sdk.ClientWithRes
 	return nil, fmt.Errorf("rebalancing schedule %q was not found", name)
 }
 
-func getRebalancingScheduleById(ctx context.Context, client *sdk.ClientWithResponses, id string) (*sdk.ScheduledrebalancingV1RebalancingSchedule, error) {
+func getRebalancingScheduleById(ctx context.Context, client sdk.ClientWithResponsesInterface, id string) (*sdk.ScheduledrebalancingV1RebalancingSchedule, error) {
 	resp, err := client.ScheduledRebalancingAPIGetRebalancingScheduleWithResponse(ctx, id)
 	if err != nil {
 		return nil, err

@@ -222,7 +222,7 @@ func resourceOrganizationGroupDelete(ctx context.Context, data *schema.ResourceD
 	return nil
 }
 
-func getGroup(client *sdk.ClientWithResponses, ctx context.Context, organizationID, groupID string) (*sdk.CastaiRbacV1beta1Group, error) {
+func getGroup(client sdk.ClientWithResponsesInterface, ctx context.Context, organizationID, groupID string) (*sdk.CastaiRbacV1beta1Group, error) {
 	groupsResp, err := client.RbacServiceAPIGetGroupWithResponse(ctx, organizationID, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching group: %w", err)
@@ -285,7 +285,7 @@ func convertMembersToSDK(data *schema.ResourceData) []sdk.CastaiRbacV1beta1Membe
 
 	for _, dataMembersDef := range data.Get(FieldOrganizationGroupMembers).([]any) {
 		for _, dataMember := range dataMembersDef.(map[string]any)[FieldOrganizationGroupMember].([]any) {
-			var kind sdk.CastaiRbacV1beta1MemberKind
+			var kind sdk.CastaiRbacV1beta1Kind
 			switch dataMember.(map[string]any)[FieldOrganizationGroupMemberKind].(string) {
 			case GroupMemberKindUser:
 				kind = sdk.USER

@@ -123,10 +123,16 @@ const (
 	Ssd     CastaiInventoryV1beta1StorageInfoDeviceType = "ssd"
 )
 
-// Defines values for CastaiRbacV1beta1MemberKind.
+// Defines values for CastaiRbacV1beta1Effects.
 const (
-	SERVICEACCOUNT CastaiRbacV1beta1MemberKind = "SERVICE_ACCOUNT"
-	USER           CastaiRbacV1beta1MemberKind = "USER"
+	ALLOW CastaiRbacV1beta1Effects = "ALLOW"
+	DENY  CastaiRbacV1beta1Effects = "DENY"
+)
+
+// Defines values for CastaiRbacV1beta1Kind.
+const (
+	SERVICEACCOUNT CastaiRbacV1beta1Kind = "SERVICE_ACCOUNT"
+	USER           CastaiRbacV1beta1Kind = "USER"
 )
 
 // Defines values for CastaiRbacV1beta1PoliciesState.
@@ -204,6 +210,20 @@ const (
 	NodeconfigV1AKSConfigImageFamilyFamilyUbuntu      NodeconfigV1AKSConfigImageFamily = "family_ubuntu"
 	NodeconfigV1AKSConfigImageFamilyFamilyWindows2019 NodeconfigV1AKSConfigImageFamily = "family_windows_2019"
 	NodeconfigV1AKSConfigImageFamilyFamilyWindows2022 NodeconfigV1AKSConfigImageFamily = "family_windows_2022"
+)
+
+// Defines values for NodeconfigV1AKSConfigOsDiskEphemeralCacheType.
+const (
+	NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADONLY    NodeconfigV1AKSConfigOsDiskEphemeralCacheType = "READ_ONLY"
+	NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADWRITE   NodeconfigV1AKSConfigOsDiskEphemeralCacheType = "READ_WRITE"
+	NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeUNSPECIFIED NodeconfigV1AKSConfigOsDiskEphemeralCacheType = "UNSPECIFIED"
+)
+
+// Defines values for NodeconfigV1AKSConfigOsDiskEphemeralPlacement.
+const (
+	PLACEMENTCACHEDISK    NodeconfigV1AKSConfigOsDiskEphemeralPlacement = "PLACEMENT_CACHE_DISK"
+	PLACEMENTRESOURCEDISK NodeconfigV1AKSConfigOsDiskEphemeralPlacement = "PLACEMENT_RESOURCE_DISK"
+	PLACEMENTUNSPECIFIED  NodeconfigV1AKSConfigOsDiskEphemeralPlacement = "PLACEMENT_UNSPECIFIED"
 )
 
 // Defines values for NodeconfigV1AKSConfigOsDiskType.
@@ -347,9 +367,9 @@ const (
 
 // Defines values for WorkloadoptimizationV1ManagementOption.
 const (
-	MANAGED   WorkloadoptimizationV1ManagementOption = "MANAGED"
-	READONLY  WorkloadoptimizationV1ManagementOption = "READ_ONLY"
-	UNDEFINED WorkloadoptimizationV1ManagementOption = "UNDEFINED"
+	WorkloadoptimizationV1ManagementOptionMANAGED   WorkloadoptimizationV1ManagementOption = "MANAGED"
+	WorkloadoptimizationV1ManagementOptionREADONLY  WorkloadoptimizationV1ManagementOption = "READ_ONLY"
+	WorkloadoptimizationV1ManagementOptionUNDEFINED WorkloadoptimizationV1ManagementOption = "UNDEFINED"
 )
 
 // Defines values for WorkloadoptimizationV1RecommendationEventType.
@@ -443,6 +463,9 @@ type ServiceAccountsAPIUpdateServiceAccountRequest struct {
 
 // UsersAPIUpdateOrganizationUserRequest defines model for UsersAPI_UpdateOrganizationUser_request.
 type UsersAPIUpdateOrganizationUserRequest struct {
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
+	// user role in the organization.
 	Role *string `json:"role,omitempty"`
 }
 
@@ -462,7 +485,7 @@ type CastaiAuthtokenV1beta1AuthToken struct {
 	// created_by is used to link this token to a user who created it.
 	CreatedBy *string `json:"createdBy"`
 
-	// (read only) Time when the token will expire (unix timestamp in nanoseconds).
+	// Time when the token will expire (unix timestamp in nanoseconds).
 	// A null value means that the key will never expire.
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
@@ -475,11 +498,9 @@ type CastaiAuthtokenV1beta1AuthToken struct {
 	// (required) User provided name of the token.
 	Name string `json:"name"`
 
+	// TODO: we need to think how to migrate away from this flag.
 	// whether token has readonly permissions.
 	Readonly bool `json:"readonly"`
-
-	// service_account_id is used to link this token to a service account.
-	ServiceAccountId *string `json:"serviceAccountId"`
 
 	// (read only, visible once on creation) actual token used to authenticate via api.
 	Token *string `json:"token"`
@@ -1496,6 +1517,9 @@ type CastaiRbacV1beta1DeleteGroupResponse = map[string]interface{}
 // CastaiRbacV1beta1DeleteRoleBindingResponse defines model for castai.rbac.v1beta1.DeleteRoleBindingResponse.
 type CastaiRbacV1beta1DeleteRoleBindingResponse = map[string]interface{}
 
+// Effects represent the effect of a permission.
+type CastaiRbacV1beta1Effects string
+
 // CastaiRbacV1beta1Group defines model for castai.rbac.v1beta1.Group.
 type CastaiRbacV1beta1Group struct {
 	// CreatedAt is the timestamp when the group was created.
@@ -1538,6 +1562,25 @@ type CastaiRbacV1beta1GroupSubject struct {
 	Name *string `json:"name,omitempty"`
 }
 
+// Kind represents the type of the member.
+type CastaiRbacV1beta1Kind string
+
+// CastaiRbacV1beta1ListRoleBindingsResponse defines model for castai.rbac.v1beta1.ListRoleBindingsResponse.
+type CastaiRbacV1beta1ListRoleBindingsResponse struct {
+	// Page defines how many and which fields should be returned.
+	NextPage     CastaiPaginationV1beta1Page     `json:"nextPage"`
+	RoleBindings *[]CastaiRbacV1beta1RoleBinding `json:"roleBindings,omitempty"`
+	TotalCount   *string                         `json:"totalCount,omitempty"`
+}
+
+// CastaiRbacV1beta1ListRolesResponse defines model for castai.rbac.v1beta1.ListRolesResponse.
+type CastaiRbacV1beta1ListRolesResponse struct {
+	// Page defines how many and which fields should be returned.
+	NextPage   *CastaiPaginationV1beta1Page `json:"nextPage,omitempty"`
+	Roles      *[]CastaiRbacV1beta1Role     `json:"roles,omitempty"`
+	TotalCount *string                      `json:"totalCount,omitempty"`
+}
+
 // CastaiRbacV1beta1Member defines model for castai.rbac.v1beta1.Member.
 type CastaiRbacV1beta1Member struct {
 	// AddedAt is the timestamp when the user has been added to the group.
@@ -1550,19 +1593,24 @@ type CastaiRbacV1beta1Member struct {
 	Id string `json:"id"`
 
 	// Kind represents the type of the member.
-	Kind CastaiRbacV1beta1MemberKind `json:"kind"`
+	Kind CastaiRbacV1beta1Kind `json:"kind"`
 
 	// LastLoginAt is the timestamp of the time when the user last time logged in.
 	LastLoginAt *time.Time `json:"lastLoginAt,omitempty"`
 }
 
-// Kind represents the type of the member.
-type CastaiRbacV1beta1MemberKind string
-
 // OrganizationScope represents the organization scope.
 type CastaiRbacV1beta1OrganizationScope struct {
 	// ID is the unique identifier of the organization.
 	Id string `json:"id"`
+}
+
+// CastaiRbacV1beta1Permissions defines model for castai.rbac.v1beta1.Permissions.
+type CastaiRbacV1beta1Permissions struct {
+	// Effects represent the effect of a permission.
+	Effect    CastaiRbacV1beta1Effects `json:"effect"`
+	Endpoints *[]string                `json:"endpoints,omitempty"`
+	Groups    *[]string                `json:"groups,omitempty"`
 }
 
 // PoliciesState represents the state of the policies generation.
@@ -1582,6 +1630,35 @@ type CastaiRbacV1beta1PolicyID struct {
 type CastaiRbacV1beta1ResourceScope struct {
 	// ID is the unique identifier of the resource.
 	Id string `json:"id"`
+}
+
+// CastaiRbacV1beta1Role defines model for castai.rbac.v1beta1.Role.
+type CastaiRbacV1beta1Role struct {
+	// CreatedAt is the timestamp when the role was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Default is a flag that indicates if the role is a default role.
+	Default    *bool                           `json:"default,omitempty"`
+	Definition CastaiRbacV1beta1RoleDefinition `json:"definition"`
+
+	// Deprecated is a flag that indicates if the role is deprecated.
+	Deprecated *bool `json:"deprecated,omitempty"`
+
+	// Description is the description of the role.
+	Description *string `json:"description,omitempty"`
+	Id          *string `json:"id,omitempty"`
+
+	// Priority level of the role (higher is more important).
+	Level *int32 `json:"level,omitempty"`
+
+	// Name is the name of the role.
+	Name *string `json:"name,omitempty"`
+
+	// OrganizationID is the unique identifier of the organization.
+	OrganizationId *string `json:"organizationId,omitempty"`
+
+	// UpdatedAt is the timestamp when the role was last updated.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
 // CastaiRbacV1beta1RoleBinding defines model for castai.rbac.v1beta1.RoleBinding.
@@ -1641,6 +1718,12 @@ type CastaiRbacV1beta1RoleBindingStatus struct {
 
 	// UpdatedAt is the timestamp when the status was last updated.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// CastaiRbacV1beta1RoleDefinition defines model for castai.rbac.v1beta1.RoleDefinition.
+type CastaiRbacV1beta1RoleDefinition struct {
+	// Permissions is a list of permissions.
+	Permissions *[]CastaiRbacV1beta1Permissions `json:"permissions,omitempty"`
 }
 
 // Scope represents the scope of the role binding.
@@ -1761,6 +1844,9 @@ type CastaiServiceaccountsV1beta1DeleteServiceAccountKeyResponse = map[string]in
 
 // DeleteServiceAccountResponse is the response for deleting a service account.
 type CastaiServiceaccountsV1beta1DeleteServiceAccountResponse = map[string]interface{}
+
+// DeleteServiceAccountsResponse is the response for batch deleting service accounts.
+type CastaiServiceaccountsV1beta1DeleteServiceAccountsResponse = map[string]interface{}
 
 // GetServiceAccountKeyResponse is the response for getting a service account key.
 type CastaiServiceaccountsV1beta1GetServiceAccountKeyResponse struct {
@@ -1899,6 +1985,9 @@ type CastaiSsoV1beta1CreateSSOConnection struct {
 	// Additional list of email domains assigned to SSO connection.
 	AdditionalEmailDomains *[]string `json:"additionalEmailDomains,omitempty"`
 
+	// ID of default role for new users signing up with SSO.
+	DefaultRoleId *string `json:"defaultRoleId"`
+
 	// EmailDomain is the email domain of the connection.
 	EmailDomain string `json:"emailDomain"`
 
@@ -1967,6 +2056,9 @@ type CastaiSsoV1beta1SSOConnection struct {
 	// CreatedAt is the time when the connection was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
+	// ID of default role for new users signing up with SSO.
+	DefaultRoleId *string `json:"defaultRoleId,omitempty"`
+
 	// EmailDomain is the email domain of the connection.
 	EmailDomain string `json:"emailDomain"`
 
@@ -2012,6 +2104,9 @@ type CastaiSsoV1beta1UpdateSSOConnection struct {
 
 	// Additional list of email domains assigned to SSO connection.
 	AdditionalEmailDomains *[]string `json:"additionalEmailDomains,omitempty"`
+
+	// ID of default role for new users signing up with SSO.
+	DefaultRoleId *string `json:"defaultRoleId"`
 
 	// EmailDomain is the email domain of the connection.
 	EmailDomain *string `json:"emailDomain,omitempty"`
@@ -2107,7 +2202,10 @@ type CastaiUsersV1beta1Membership struct {
 	CreatedAt *time.Time                    `json:"createdAt,omitempty"`
 	Groups    *[]CastaiUsersV1beta1GroupRef `json:"groups,omitempty"`
 	LoginAt   *time.Time                    `json:"loginAt,omitempty"`
-	Role      string                        `json:"role"`
+
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
+	Role string `json:"role"`
 
 	// User represents a single system user.
 	User CastaiUsersV1beta1User `json:"user"`
@@ -2115,6 +2213,8 @@ type CastaiUsersV1beta1Membership struct {
 
 // NewMembership contains data needed to create new membership in organization.
 type CastaiUsersV1beta1NewMembership struct {
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
 	// role of the new member.
 	Role string `json:"role"`
 
@@ -2127,6 +2227,8 @@ type CastaiUsersV1beta1NewMembershipByEmail struct {
 	// list of the group IDs for which new user should be added.
 	GroupIds *[]string `json:"groupIds,omitempty"`
 
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
 	// role of the invited person.
 	Role *string `json:"role,omitempty"`
 
@@ -2155,6 +2257,9 @@ type CastaiUsersV1beta1Organization struct {
 	// letter or a number, followed by letters, numbers, underscores, hyphens,
 	// spaces and periods. The name must end with a letter or a number.
 	Name string `json:"name"`
+
+	// information whether the organization have rbacv2 enabled.
+	Rbacv2Enabled *bool `json:"rbacv2Enabled"`
 }
 
 // OrganizationMetadata describes organization metadata.
@@ -2174,6 +2279,8 @@ type CastaiUsersV1beta1PendingInvitation struct {
 	// email of the invited person.
 	InviteEmail string `json:"inviteEmail"`
 
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
 	// role of the invited person.
 	Role string `json:"role"`
 
@@ -2232,12 +2339,20 @@ type CastaiUsersV1beta1UserOrganization struct {
 	// name of the organization.
 	Name string `json:"name"`
 
+	// information whether the organization have rbacv2 enabled.
+	Rbacv2Enabled *bool `json:"rbacv2Enabled"`
+
+	// Deprecated: for RBACv2 user can be bound to multiple roles.
+	// Use https://docs.cast.ai/reference/rbacserviceapi instead.
 	// user role in the organization.
 	Role string `json:"role"`
 }
 
 // AKSClusterParams defines AKS-specific arguments.
 type ExternalclusterV1AKSClusterParams struct {
+	// HttpProxyConfig holds settings when HTTP/S communication is required.
+	HttpProxyConfig *ExternalclusterV1HttpProxyConfig `json:"httpProxyConfig,omitempty"`
+
 	// Deprecated. This field is no longer updatable and node configuration equivalent should be used.
 	MaxPodsPerNode *int32 `json:"maxPodsPerNode,omitempty"`
 
@@ -2421,6 +2536,9 @@ type ExternalclusterV1ClusterReconcileInfoReconcileStatus string
 
 // ExternalclusterV1ClusterUpdate defines model for externalcluster.v1.ClusterUpdate.
 type ExternalclusterV1ClusterUpdate struct {
+	// UpdateAKSClusterParams defines updatable AKS cluster configuration.
+	Aks *ExternalclusterV1UpdateAKSClusterParams `json:"aks,omitempty"`
+
 	// JSON encoded cluster credentials string.
 	Credentials *string `json:"credentials,omitempty"`
 
@@ -2585,6 +2703,13 @@ type ExternalclusterV1GetListNodesFiltersResponse struct {
 
 // HandleCloudEventResponse is the result of HandleCloudEventRequest.
 type ExternalclusterV1HandleCloudEventResponse = map[string]interface{}
+
+// HttpProxyConfig holds settings when HTTP/S communication is required.
+type ExternalclusterV1HttpProxyConfig struct {
+	HttpProxy  *string   `json:"httpProxy,omitempty"`
+	HttpsProxy *string   `json:"httpsProxy,omitempty"`
+	NoProxy    *[]string `json:"noProxy,omitempty"`
+}
 
 // KOPSClusterParams defines KOPS-specific arguments.
 type ExternalclusterV1KOPSClusterParams struct {
@@ -2900,6 +3025,12 @@ type ExternalclusterV1TriggerResumeClusterResponse struct {
 	OperationId string `json:"operationId"`
 }
 
+// UpdateAKSClusterParams defines updatable AKS cluster configuration.
+type ExternalclusterV1UpdateAKSClusterParams struct {
+	// HttpProxyConfig holds settings when HTTP/S communication is required.
+	HttpProxyConfig *ExternalclusterV1HttpProxyConfig `json:"httpProxyConfig,omitempty"`
+}
+
 // UpdateClusterTagsResponse result of cluster tags update.
 type ExternalclusterV1UpdateClusterTagsResponse = map[string]interface{}
 
@@ -2959,7 +3090,8 @@ type NodeconfigV1AKSConfig struct {
 	// Maximum number of pods that can be run on a node, which affects how many IP addresses you will need for each node.
 	// Defaults to 30. Values between 10 and 250 are allowed.
 	// Setting values above 110 will require specific CNI configuration. Please refer to Microsoft documentation for additional guidance.
-	MaxPodsPerNode *int32 `json:"maxPodsPerNode,omitempty"`
+	MaxPodsPerNode  *int32                                `json:"maxPodsPerNode,omitempty"`
+	OsDiskEphemeral *NodeconfigV1AKSConfigOsDiskEphemeral `json:"osDiskEphemeral,omitempty"`
 
 	// OsDiskType represent possible values for AKS node os disk type(this is subset of all available Azure disk types).
 	OsDiskType *NodeconfigV1AKSConfigOsDiskType `json:"osDiskType,omitempty"`
@@ -2997,6 +3129,21 @@ type NodeconfigV1AKSConfigLoadBalancersNICBasedBackendPool struct {
 	// Name of the backend pool as defined in Azure. Backend pools must have unique names within the load balancer.
 	Name *string `json:"name,omitempty"`
 }
+
+// NodeconfigV1AKSConfigOsDiskEphemeral defines model for nodeconfig.v1.AKSConfig.OsDiskEphemeral.
+type NodeconfigV1AKSConfigOsDiskEphemeral struct {
+	// Type of cache to use for the ephemeral OS disk. Default is READ_ONLY.
+	CacheType *NodeconfigV1AKSConfigOsDiskEphemeralCacheType `json:"cacheType,omitempty"`
+
+	// Placement of the ephemeral OS disk. Default is PLACEMENT_CACHE_DISk.
+	Placement *NodeconfigV1AKSConfigOsDiskEphemeralPlacement `json:"placement,omitempty"`
+}
+
+// Type of cache to use for the ephemeral OS disk. Default is READ_ONLY.
+type NodeconfigV1AKSConfigOsDiskEphemeralCacheType string
+
+// Placement of the ephemeral OS disk. Default is PLACEMENT_CACHE_DISk.
+type NodeconfigV1AKSConfigOsDiskEphemeralPlacement string
 
 // OsDiskType represent possible values for AKS node os disk type(this is subset of all available Azure disk types).
 type NodeconfigV1AKSConfigOsDiskType string
@@ -3073,7 +3220,8 @@ type NodeconfigV1GKEConfig struct {
 	MaxPodsPerNode *int32 `json:"maxPodsPerNode,omitempty"`
 
 	// Network tags to be added on a VM. Each tag must be 1-63 characters long, start with a lowercase letter and end with either a number or a lowercase letter.
-	NetworkTags *[]string `json:"networkTags,omitempty"`
+	NetworkTags      *[]string                     `json:"networkTags,omitempty"`
+	SecondaryIpRange *NodeconfigV1SecondaryIPRange `json:"secondaryIpRange,omitempty"`
 
 	// Flag indicating whether to use local SSD storage for the node. Defaults to false.
 	UseEphemeralStorageLocalSsd *bool `json:"useEphemeralStorageLocalSsd,omitempty"`
@@ -3303,6 +3451,11 @@ type NodeconfigV1NodeConfigurationUpdate struct {
 // Tags to be added on cloud instances for provisioned nodes.
 type NodeconfigV1NodeConfigurationUpdate_Tags struct {
 	AdditionalProperties map[string]string `json:"-"`
+}
+
+// NodeconfigV1SecondaryIPRange defines model for nodeconfig.v1.SecondaryIPRange.
+type NodeconfigV1SecondaryIPRange struct {
+	RangeName *string `json:"rangeName,omitempty"`
 }
 
 // NodeconfigV1SecurityGroup defines model for nodeconfig.v1.SecurityGroup.
@@ -3582,8 +3735,9 @@ type NodetemplatesV1TemplateConstraints struct {
 	MinMemory *int32 `json:"minMemory"`
 
 	// Should include on-demand instances in the considered pool.
-	OnDemand *bool     `json:"onDemand"`
-	Os       *[]string `json:"os,omitempty"`
+	OnDemand       *bool                                             `json:"onDemand"`
+	Os             *[]string                                         `json:"os,omitempty"`
+	ResourceLimits *NodetemplatesV1TemplateConstraintsResourceLimits `json:"resourceLimits,omitempty"`
 
 	// Should include spot instances in the considered pool.
 	// Note 1: if both spot and on-demand are false, then on-demand is assumed.
@@ -3648,6 +3802,15 @@ type NodetemplatesV1TemplateConstraintsGPUConstraints struct {
 type NodetemplatesV1TemplateConstraintsInstanceFamilyConstraints struct {
 	Exclude *[]string `json:"exclude,omitempty"`
 	Include *[]string `json:"include,omitempty"`
+}
+
+// NodetemplatesV1TemplateConstraintsResourceLimits defines model for nodetemplates.v1.TemplateConstraints.ResourceLimits.
+type NodetemplatesV1TemplateConstraintsResourceLimits struct {
+	// If set, enables CPU limits for the node template.
+	CpuLimitEnabled *bool `json:"cpuLimitEnabled,omitempty"`
+
+	// Specifies the maximum number of CPU cores that the nodes provisioned from this template can collectively have.
+	CpuLimitMaxCores *int32 `json:"cpuLimitMaxCores,omitempty"`
 }
 
 // NodetemplatesV1UpdateNodeTemplate defines model for nodetemplates.v1.UpdateNodeTemplate.
@@ -3928,6 +4091,12 @@ type PoliciesV1UnschedulablePodsPolicy struct {
 	PodPinner *PoliciesV1PodPinner `json:"podPinner,omitempty"`
 }
 
+// ScheduledrebalancingV1AggressiveModeConfig defines model for scheduledrebalancing.v1.AggressiveModeConfig.
+type ScheduledrebalancingV1AggressiveModeConfig struct {
+	// Rebalance workloads using local-path Persistent Volumes. THIS WILL RESULT IN DATA LOSS.
+	IgnoreLocalPersistentVolumes *bool `json:"ignoreLocalPersistentVolumes,omitempty"`
+}
+
 // ScheduledrebalancingV1DeleteRebalancingJobResponse defines model for scheduledrebalancing.v1.DeleteRebalancingJobResponse.
 type ScheduledrebalancingV1DeleteRebalancingJobResponse = map[string]interface{}
 
@@ -4028,7 +4197,8 @@ type ScheduledrebalancingV1RebalancingJob struct {
 // ScheduledrebalancingV1RebalancingOptions defines model for scheduledrebalancing.v1.RebalancingOptions.
 type ScheduledrebalancingV1RebalancingOptions struct {
 	// When enabled will also consider rebalancing problematic pods (pods without controller, job pods, pods with removal-disabled annotation).
-	AggressiveMode *bool `json:"aggressiveMode"`
+	AggressiveMode       *bool                                       `json:"aggressiveMode"`
+	AggressiveModeConfig *ScheduledrebalancingV1AggressiveModeConfig `json:"aggressiveModeConfig,omitempty"`
 
 	// Defines whether the nodes that failed to get drained until a predefined timeout, will be kept with a
 	// rebalancing.cast.ai/status=drain-failed annotation instead of forcefully drained.
@@ -4100,6 +4270,34 @@ type WorkloadoptimizationV1AntiAffinitySettings struct {
 	ConsiderAntiAffinity *bool `json:"considerAntiAffinity"`
 }
 
+// WorkloadoptimizationV1ApplyThresholdStrategy defines model for workloadoptimization.v1.ApplyThresholdStrategy.
+type WorkloadoptimizationV1ApplyThresholdStrategy struct {
+	CustomAdaptiveThreshold  *WorkloadoptimizationV1ApplyThresholdStrategyCustomAdaptiveThreshold  `json:"customAdaptiveThreshold,omitempty"`
+	DefaultAdaptiveThreshold *WorkloadoptimizationV1ApplyThresholdStrategyDefaultAdaptiveThreshold `json:"defaultAdaptiveThreshold,omitempty"`
+
+	// PercentageThreshold is the percentage for the apply threshold strategy.
+	PercentageThreshold *WorkloadoptimizationV1ApplyThresholdStrategyPercentageThreshold `json:"percentageThreshold,omitempty"`
+}
+
+// WorkloadoptimizationV1ApplyThresholdStrategyCustomAdaptiveThreshold defines model for workloadoptimization.v1.ApplyThresholdStrategy.CustomAdaptiveThreshold.
+type WorkloadoptimizationV1ApplyThresholdStrategyCustomAdaptiveThreshold struct {
+	// If value is close or equal to 0, the threshold will be much bigger for small values.
+	// For example when numerator, exponent is 1 and denominator is 0 the threshold for 0.5 req. CPU will be 200%.
+	Denominator float64 `json:"denominator"`
+	Exponent    float64 `json:"exponent"`
+
+	// It affects vertical stretch of function - smaller number will create smaller threshold.
+	Numerator float64 `json:"numerator"`
+}
+
+// WorkloadoptimizationV1ApplyThresholdStrategyDefaultAdaptiveThreshold defines model for workloadoptimization.v1.ApplyThresholdStrategy.DefaultAdaptiveThreshold.
+type WorkloadoptimizationV1ApplyThresholdStrategyDefaultAdaptiveThreshold = map[string]interface{}
+
+// PercentageThreshold is the percentage for the apply threshold strategy.
+type WorkloadoptimizationV1ApplyThresholdStrategyPercentageThreshold struct {
+	Percentage float64 `json:"percentage"`
+}
+
 // WorkloadoptimizationV1ApplyType defines model for workloadoptimization.v1.ApplyType.
 type WorkloadoptimizationV1ApplyType string
 
@@ -4162,6 +4360,15 @@ type WorkloadoptimizationV1ContainerConstraintsV2 struct {
 	ContainerName string                             `json:"containerName"`
 	Cpu           *WorkloadoptimizationV1Constraints `json:"cpu,omitempty"`
 	Memory        *WorkloadoptimizationV1Constraints `json:"memory,omitempty"`
+}
+
+// WorkloadoptimizationV1Costs defines model for workloadoptimization.v1.Costs.
+type WorkloadoptimizationV1Costs struct {
+	// Cost of recommended resources.
+	Recommended *float64 `json:"recommended"`
+
+	// Cost of requested resources.
+	Requested *float64 `json:"requested"`
 }
 
 // WorkloadoptimizationV1CpuMetrics defines model for workloadoptimization.v1.CpuMetrics.
@@ -4244,7 +4451,8 @@ type WorkloadoptimizationV1GetWorkloadsSummaryResponse struct {
 	AnnotationManagedCount int32 `json:"annotationManagedCount"`
 
 	// Number of workloads that are managed by API.
-	ApiManagedCount int32 `json:"apiManagedCount"`
+	ApiManagedCount int32                        `json:"apiManagedCount"`
+	CostsPerHour    *WorkloadoptimizationV1Costs `json:"costsPerHour,omitempty"`
 
 	// Difference between recommended and requested CPU cores.
 	CpuCoresDifference float64 `json:"cpuCoresDifference"`
@@ -4304,6 +4512,18 @@ type WorkloadoptimizationV1HPAConfigUpdate struct {
 	MinReplicas      *int32                                  `json:"minReplicas"`
 }
 
+// WorkloadoptimizationV1HPASpec defines model for workloadoptimization.v1.HPASpec.
+type WorkloadoptimizationV1HPASpec struct {
+	// Max replicas a workload can have.
+	MaxReplicas int32 `json:"maxReplicas"`
+
+	// Min replicas a workload can have.
+	MinReplicas *int32 `json:"minReplicas"`
+
+	// Target CPU utilization percentage.
+	TargetCpuUtilizationPercentage *int32 `json:"targetCpuUtilizationPercentage"`
+}
+
 // WorkloadoptimizationV1HorizontalOverrides defines model for workloadoptimization.v1.HorizontalOverrides.
 type WorkloadoptimizationV1HorizontalOverrides struct {
 	// Defines possible options for workload management.
@@ -4333,6 +4553,39 @@ type WorkloadoptimizationV1InitiatedBy struct {
 type WorkloadoptimizationV1KeyValuePair struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+// WorkloadoptimizationV1LimitRange defines model for workloadoptimization.v1.LimitRange.
+type WorkloadoptimizationV1LimitRange struct {
+	ClusterId       string                                    `json:"clusterId"`
+	CpuContainer    *WorkloadoptimizationV1LimitRangeResource `json:"cpuContainer,omitempty"`
+	CpuPod          *WorkloadoptimizationV1LimitRangeResource `json:"cpuPod,omitempty"`
+	Id              string                                    `json:"id"`
+	MemoryContainer *WorkloadoptimizationV1LimitRangeResource `json:"memoryContainer,omitempty"`
+	MemoryPod       *WorkloadoptimizationV1LimitRangeResource `json:"memoryPod,omitempty"`
+	Name            string                                    `json:"name"`
+	Namespace       string                                    `json:"namespace"`
+	Object          map[string]interface{}                    `json:"object"`
+	OrganizationId  string                                    `json:"organizationId"`
+}
+
+// WorkloadoptimizationV1LimitRangeResource defines model for workloadoptimization.v1.LimitRangeResource.
+type WorkloadoptimizationV1LimitRangeResource struct {
+	// The quota value for a resource. For memory - this is in MiB, for CPU - this is in cores.
+	Max *float64 `json:"max"`
+
+	// The min amount of a resource. For memory - this is in MiB, for CPU - this is in cores.
+	Min *float64 `json:"min"`
+}
+
+// WorkloadoptimizationV1ListLimitRangesResponse defines model for workloadoptimization.v1.ListLimitRangesResponse.
+type WorkloadoptimizationV1ListLimitRangesResponse struct {
+	Items []WorkloadoptimizationV1LimitRange `json:"items"`
+}
+
+// WorkloadoptimizationV1ListResourceQuotasResponse defines model for workloadoptimization.v1.ListResourceQuotasResponse.
+type WorkloadoptimizationV1ListResourceQuotasResponse struct {
+	Items []WorkloadoptimizationV1ResourceQuota `json:"items"`
 }
 
 // WorkloadoptimizationV1ListWorkloadEventsResponse defines model for workloadoptimization.v1.ListWorkloadEventsResponse.
@@ -4419,8 +4672,9 @@ type WorkloadoptimizationV1RecommendationPolicies struct {
 
 // WorkloadoptimizationV1RecommendedPodCountChangedEvent defines model for workloadoptimization.v1.RecommendedPodCountChangedEvent.
 type WorkloadoptimizationV1RecommendedPodCountChangedEvent struct {
-	Current  int32 `json:"current"`
-	Previous int32 `json:"previous"`
+	Current   int32                   `json:"current"`
+	DebugData *map[string]interface{} `json:"debugData,omitempty"`
+	Previous  int32                   `json:"previous"`
 }
 
 // WorkloadoptimizationV1RecommendedRequestsChangedEvent defines model for workloadoptimization.v1.RecommendedRequestsChangedEvent.
@@ -4439,7 +4693,8 @@ type WorkloadoptimizationV1RecommendedRequestsChangedEventChange struct {
 // WorkloadoptimizationV1ResourceConfig defines model for workloadoptimization.v1.ResourceConfig.
 type WorkloadoptimizationV1ResourceConfig struct {
 	// The threshold of when to apply the recommendation - when diff of current requests and recommendation is greater than this, apply the recommendation.
-	ApplyThreshold *float64 `json:"applyThreshold"`
+	ApplyThreshold         *float64                                      `json:"applyThreshold"`
+	ApplyThresholdStrategy *WorkloadoptimizationV1ApplyThresholdStrategy `json:"applyThresholdStrategy,omitempty"`
 
 	// The arguments for the function - i.e. for a quantile, this should be a [0, 1] float.
 	Args []string `json:"args"`
@@ -4478,7 +4733,8 @@ type WorkloadoptimizationV1ResourceConfigFunction string
 // WorkloadoptimizationV1ResourceConfigOverrides defines model for workloadoptimization.v1.ResourceConfigOverrides.
 type WorkloadoptimizationV1ResourceConfigOverrides struct {
 	// The threshold of when to apply the recommendation - when diff of current requests and recommendation is greater than this, apply the recommendation.
-	ApplyThreshold *float64 `json:"applyThreshold"`
+	ApplyThreshold         *float64                                      `json:"applyThreshold"`
+	ApplyThresholdStrategy *WorkloadoptimizationV1ApplyThresholdStrategy `json:"applyThresholdStrategy,omitempty"`
 
 	// The arguments for the function - i.e. for a quantile, this should be a [0, 1] float.
 	Args *[]string `json:"args,omitempty"`
@@ -4555,7 +4811,8 @@ type WorkloadoptimizationV1ResourceMetrics struct {
 // WorkloadoptimizationV1ResourcePolicies defines model for workloadoptimization.v1.ResourcePolicies.
 type WorkloadoptimizationV1ResourcePolicies struct {
 	// The threshold of when to apply the recommendation - when diff of current requests and recommendation is greater than this, apply the recommendation.
-	ApplyThreshold float64 `json:"applyThreshold"`
+	ApplyThreshold         float64                                       `json:"applyThreshold"`
+	ApplyThresholdStrategy *WorkloadoptimizationV1ApplyThresholdStrategy `json:"applyThresholdStrategy,omitempty"`
 
 	// The arguments for the function - i.e. for a quantile, this should be a [0, 1] float.
 	Args []string `json:"args"`
@@ -4596,6 +4853,29 @@ type WorkloadoptimizationV1ResourcePoliciesFunction string
 type WorkloadoptimizationV1ResourceQuantity struct {
 	CpuCores  *float64 `json:"cpuCores"`
 	MemoryGib *float64 `json:"memoryGib"`
+}
+
+// WorkloadoptimizationV1ResourceQuota defines model for workloadoptimization.v1.ResourceQuota.
+type WorkloadoptimizationV1ResourceQuota struct {
+	ClusterId      string                                       `json:"clusterId"`
+	CpuLimits      *WorkloadoptimizationV1ResourceQuotaResource `json:"cpuLimits,omitempty"`
+	CpuRequests    *WorkloadoptimizationV1ResourceQuotaResource `json:"cpuRequests,omitempty"`
+	Id             string                                       `json:"id"`
+	MemoryLimits   *WorkloadoptimizationV1ResourceQuotaResource `json:"memoryLimits,omitempty"`
+	MemoryRequests *WorkloadoptimizationV1ResourceQuotaResource `json:"memoryRequests,omitempty"`
+	Name           string                                       `json:"name"`
+	Namespace      string                                       `json:"namespace"`
+	Object         map[string]interface{}                       `json:"object"`
+	OrganizationId string                                       `json:"organizationId"`
+}
+
+// WorkloadoptimizationV1ResourceQuotaResource defines model for workloadoptimization.v1.ResourceQuotaResource.
+type WorkloadoptimizationV1ResourceQuotaResource struct {
+	// The quota value for a resource. For memory - this is in MiB, for CPU - this is in cores.
+	Hard *float64 `json:"hard"`
+
+	// The used amount of a resource. For memory - this is in MiB, for CPU - this is in cores.
+	Used *float64 `json:"used"`
 }
 
 // WorkloadoptimizationV1Resources defines model for workloadoptimization.v1.Resources.
@@ -4738,8 +5018,9 @@ type WorkloadoptimizationV1Workload struct {
 	ClusterId   string                               `json:"clusterId"`
 
 	// Workload containers.
-	Containers []WorkloadoptimizationV1Container `json:"containers"`
-	CreatedAt  time.Time                         `json:"createdAt"`
+	Containers   []WorkloadoptimizationV1Container `json:"containers"`
+	CostsPerHour *WorkloadoptimizationV1Costs      `json:"costsPerHour,omitempty"`
+	CreatedAt    time.Time                         `json:"createdAt"`
 
 	// Workload error message (if any).
 	Error *string `json:"error"`
@@ -4750,10 +5031,11 @@ type WorkloadoptimizationV1Workload struct {
 	Group      string  `json:"group"`
 
 	// Whether workload has native HPA configured.
-	HasNativeHpa *bool  `json:"hasNativeHpa"`
-	Id           string `json:"id"`
-	IsCustom     bool   `json:"isCustom"`
-	Kind         string `json:"kind"`
+	HasNativeHpa *bool                          `json:"hasNativeHpa"`
+	HpaSpec      *WorkloadoptimizationV1HPASpec `json:"hpaSpec,omitempty"`
+	Id           string                         `json:"id"`
+	IsCustom     bool                           `json:"isCustom"`
+	Kind         string                         `json:"kind"`
 
 	// Labels as defined on the workload manifest. These are labels from the controller meta, not the pod meta.
 	Labels []WorkloadoptimizationV1KeyValuePair `json:"labels"`
@@ -5124,11 +5406,36 @@ type InventoryAPIAddReservationJSONBody = CastaiInventoryV1beta1GenericReservati
 // InventoryAPIOverwriteReservationsJSONBody defines parameters for InventoryAPIOverwriteReservations.
 type InventoryAPIOverwriteReservationsJSONBody = CastaiInventoryV1beta1GenericReservationsList
 
+// RbacServiceAPIListRoleBindingsParams defines parameters for RbacServiceAPIListRoleBindings.
+type RbacServiceAPIListRoleBindingsParams struct {
+	PageLimit *string `form:"page.limit,omitempty" json:"page.limit,omitempty"`
+
+	// Cursor that defines token indicating where to start the next page.
+	// Empty value indicates to start from beginning of the dataset.
+	PageCursor *string `form:"page.cursor,omitempty" json:"page.cursor,omitempty"`
+	RoleId     *string `form:"roleId,omitempty" json:"roleId,omitempty"`
+}
+
 // RbacServiceAPICreateRoleBindingsJSONBody defines parameters for RbacServiceAPICreateRoleBindings.
 type RbacServiceAPICreateRoleBindingsJSONBody = []CastaiRbacV1beta1CreateRoleBindingsRequestRoleBinding
 
 // RbacServiceAPIUpdateRoleBindingJSONBody defines parameters for RbacServiceAPIUpdateRoleBinding.
 type RbacServiceAPIUpdateRoleBindingJSONBody = RoleBindingIsTheRoleBindingToBeUpdated
+
+// RbacServiceAPIListRolesParams defines parameters for RbacServiceAPIListRoles.
+type RbacServiceAPIListRolesParams struct {
+	PageLimit *string `form:"page.limit,omitempty" json:"page.limit,omitempty"`
+
+	// Cursor that defines token indicating where to start the next page.
+	// Empty value indicates to start from beginning of the dataset.
+	PageCursor *string `form:"page.cursor,omitempty" json:"page.cursor,omitempty"`
+}
+
+// ServiceAccountsAPIDeleteServiceAccountsParams defines parameters for ServiceAccountsAPIDeleteServiceAccounts.
+type ServiceAccountsAPIDeleteServiceAccountsParams struct {
+	// ServiceAccountIDs is the list of service account ids to be deleted.
+	ServiceAccountIds []string `form:"serviceAccountIds" json:"serviceAccountIds"`
+}
 
 // ServiceAccountsAPIListServiceAccountsParams defines parameters for ServiceAccountsAPIListServiceAccounts.
 type ServiceAccountsAPIListServiceAccountsParams struct {
@@ -5294,6 +5601,11 @@ type WorkloadOptimizationAPIListWorkloadEventsParamsType string
 type WorkloadOptimizationAPIGetWorkloadEventParams struct {
 	// The creation time of the event.
 	CreatedAt time.Time `form:"createdAt" json:"createdAt"`
+}
+
+// WorkloadOptimizationAPIGetWorkloadsSummaryParams defines parameters for WorkloadOptimizationAPIGetWorkloadsSummary.
+type WorkloadOptimizationAPIGetWorkloadsSummaryParams struct {
+	IncludeCosts *bool `form:"includeCosts,omitempty" json:"includeCosts,omitempty"`
 }
 
 // WorkloadOptimizationAPIGetWorkloadParams defines parameters for WorkloadOptimizationAPIGetWorkload.

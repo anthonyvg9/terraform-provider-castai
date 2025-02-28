@@ -245,7 +245,7 @@ func resourceAutoscaler() *schema.Resource {
 											Schema: map[string]*schema.Schema{
 												FieldEnabled: {
 													Type:        schema.TypeBool,
-													Default:     true,
+													Default:     false,
 													Optional:    true,
 													Description: "enable/disable the Pod Pinner component's automatic management in your cluster. Default: enabled.",
 												},
@@ -256,6 +256,7 @@ func resourceAutoscaler() *schema.Resource {
 										Type:        schema.TypeBool,
 										Optional:    true,
 										Default:     false,
+										Deprecated:  "customInstancesEnabled is deprecated. Use custom_instances_enabled field the node template resource.",
 										Description: "enable/disable custom instances policy.",
 									},
 								},
@@ -553,7 +554,7 @@ func resourceCastaiAutoscalerUpdate(ctx context.Context, data *schema.ResourceDa
 	return nil
 }
 
-func getCurrentPolicies(ctx context.Context, client *sdk.ClientWithResponses, clusterId string) ([]byte, error) {
+func getCurrentPolicies(ctx context.Context, client sdk.ClientWithResponsesInterface, clusterId string) ([]byte, error) {
 	log.Printf("[INFO] Getting cluster autoscaler information.")
 
 	resp, err := client.PoliciesAPIGetClusterPolicies(ctx, clusterId)
