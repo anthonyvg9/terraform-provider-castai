@@ -1,40 +1,54 @@
-# GKE module variables.
 variable "cluster_name" {
   type        = string
-  description = "GKE cluster name in GCP project."
+  description = "Name of the AKS cluster to be connected to the CAST AI."
 }
 
 variable "cluster_region" {
   type        = string
-  description = "The region to create the cluster."
+  description = "Region of the cluster to be connected to CAST AI."
 }
 
-variable "cluster_zones" {
-  type        = list(string)
-  description = "The zones to create the cluster."
-}
-
-variable "project_id" {
+variable "resource_group" {
   type        = string
-  description = "GCP project ID in which GKE cluster would be created."
+  description = "Azure resource group that contains the cluster."
 }
 
 variable "castai_api_url" {
   type        = string
-  description = "URL of alternative CAST AI API to be used during development or testing"
+  description = "CAST AI url to API, default value is https://api.cast.ai"
   default     = "https://api.cast.ai"
-}
-
-# Variables required for connecting GKE cluster to CAST AI
-variable "castai_api_token" {
-  type        = string
-  description = "CAST AI API token created in console.cast.ai API Access keys section."
 }
 
 variable "castai_grpc_url" {
   type        = string
   description = "CAST AI gRPC URL"
   default     = "grpc.cast.ai:443"
+}
+
+variable "kvisor_grpc_url" {
+  type        = string
+  description = "CAST AI gRPC URL"
+  default     = "kvisor.prod-master.cast.ai:443"
+}
+
+variable "castai_api_token" {
+  type        = string
+  description = "CAST AI API token created in console.cast.ai API Access keys section."
+}
+
+variable "subscription_id" {
+  type        = string
+  description = "Azure subscription ID"
+}
+
+variable "tenant_id" {
+  type        = string
+  description = "Azure tenant ID"
+}
+
+variable "additional_resource_groups" {
+  type    = list(string)
+  default = []
 }
 
 variable "delete_nodes_on_disconnect" {
@@ -47,10 +61,4 @@ variable "tags" {
   type        = map(any)
   description = "Optional tags for new cluster nodes. This parameter applies only to new nodes - tags for old nodes are not reconciled."
   default     = {}
-}
-
-variable "service_account_id" {
-  type        = string
-  description = "Cast service account id for impersonation."
-  default     = ""
 }
