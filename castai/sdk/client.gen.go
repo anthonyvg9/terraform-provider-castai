@@ -541,6 +541,9 @@ type ClientInterface interface {
 	// CommitmentsAPIGetCommitments request
 	CommitmentsAPIGetCommitments(ctx context.Context, params *CommitmentsAPIGetCommitmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CommitmentsAPIGetCommitmentsDiscountedPrices request
+	CommitmentsAPIGetCommitmentsDiscountedPrices(ctx context.Context, params *CommitmentsAPIGetCommitmentsDiscountedPricesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CommitmentsAPIImportAzureReservationsWithBody request with any body
 	CommitmentsAPIImportAzureReservationsWithBody(ctx context.Context, params *CommitmentsAPIImportAzureReservationsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -594,6 +597,11 @@ type ClientInterface interface {
 	RuntimeSecurityAPICloseAnomaliesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	RuntimeSecurityAPICloseAnomalies(ctx context.Context, body RuntimeSecurityAPICloseAnomaliesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RuntimeSecurityAPITriggerAnomaliesWebhookWithBody request with any body
+	RuntimeSecurityAPITriggerAnomaliesWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RuntimeSecurityAPITriggerAnomaliesWebhook(ctx context.Context, body RuntimeSecurityAPITriggerAnomaliesWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RuntimeSecurityAPIGetAnomaly request
 	RuntimeSecurityAPIGetAnomaly(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -709,6 +717,11 @@ type ClientInterface interface {
 
 	SSOAPIUpdateSSOConnection(ctx context.Context, id string, body SSOAPIUpdateSSOConnectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// SSOAPISetSyncForSSOConnectionWithBody request with any body
+	SSOAPISetSyncForSSOConnectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SSOAPISetSyncForSSOConnection(ctx context.Context, id string, body SSOAPISetSyncForSSOConnectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ScheduledRebalancingAPIListAvailableRebalancingTZ request
 	ScheduledRebalancingAPIListAvailableRebalancingTZ(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -762,6 +775,9 @@ type ClientInterface interface {
 	// WorkloadOptimizationAPIGetWorkloadsSummary request
 	WorkloadOptimizationAPIGetWorkloadsSummary(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// WorkloadOptimizationAPIGetWorkloadsSummaryMetrics request
+	WorkloadOptimizationAPIGetWorkloadsSummaryMetrics(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// WorkloadOptimizationAPIGetWorkload request
 	WorkloadOptimizationAPIGetWorkload(ctx context.Context, clusterId string, workloadId string, params *WorkloadOptimizationAPIGetWorkloadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -773,6 +789,11 @@ type ClientInterface interface {
 
 	// InventoryAPIListZones request
 	InventoryAPIListZones(ctx context.Context, params *InventoryAPIListZonesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// WorkloadOptimizationAPIPatchWorkloadV2WithBody request with any body
+	WorkloadOptimizationAPIPatchWorkloadV2WithBody(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	WorkloadOptimizationAPIPatchWorkloadV2(ctx context.Context, clusterId string, workloadId string, body WorkloadOptimizationAPIPatchWorkloadV2JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// WorkloadOptimizationAPIUpdateWorkloadV2WithBody request with any body
 	WorkloadOptimizationAPIUpdateWorkloadV2WithBody(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2760,6 +2781,18 @@ func (c *Client) CommitmentsAPIGetCommitments(ctx context.Context, params *Commi
 	return c.Client.Do(req)
 }
 
+func (c *Client) CommitmentsAPIGetCommitmentsDiscountedPrices(ctx context.Context, params *CommitmentsAPIGetCommitmentsDiscountedPricesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommitmentsAPIGetCommitmentsDiscountedPricesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CommitmentsAPIImportAzureReservationsWithBody(ctx context.Context, params *CommitmentsAPIImportAzureReservationsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCommitmentsAPIImportAzureReservationsRequestWithBody(c.Server, params, contentType, body)
 	if err != nil {
@@ -2990,6 +3023,30 @@ func (c *Client) RuntimeSecurityAPICloseAnomaliesWithBody(ctx context.Context, c
 
 func (c *Client) RuntimeSecurityAPICloseAnomalies(ctx context.Context, body RuntimeSecurityAPICloseAnomaliesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRuntimeSecurityAPICloseAnomaliesRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RuntimeSecurityAPITriggerAnomaliesWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRuntimeSecurityAPITriggerAnomaliesWebhookRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RuntimeSecurityAPITriggerAnomaliesWebhook(ctx context.Context, body RuntimeSecurityAPITriggerAnomaliesWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRuntimeSecurityAPITriggerAnomaliesWebhookRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3504,6 +3561,30 @@ func (c *Client) SSOAPIUpdateSSOConnection(ctx context.Context, id string, body 
 	return c.Client.Do(req)
 }
 
+func (c *Client) SSOAPISetSyncForSSOConnectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSSOAPISetSyncForSSOConnectionRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SSOAPISetSyncForSSOConnection(ctx context.Context, id string, body SSOAPISetSyncForSSOConnectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSSOAPISetSyncForSSOConnectionRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ScheduledRebalancingAPIListAvailableRebalancingTZ(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewScheduledRebalancingAPIListAvailableRebalancingTZRequest(c.Server)
 	if err != nil {
@@ -3732,6 +3813,18 @@ func (c *Client) WorkloadOptimizationAPIGetWorkloadsSummary(ctx context.Context,
 	return c.Client.Do(req)
 }
 
+func (c *Client) WorkloadOptimizationAPIGetWorkloadsSummaryMetrics(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWorkloadOptimizationAPIGetWorkloadsSummaryMetricsRequest(c.Server, clusterId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) WorkloadOptimizationAPIGetWorkload(ctx context.Context, clusterId string, workloadId string, params *WorkloadOptimizationAPIGetWorkloadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewWorkloadOptimizationAPIGetWorkloadRequest(c.Server, clusterId, workloadId, params)
 	if err != nil {
@@ -3770,6 +3863,30 @@ func (c *Client) WorkloadOptimizationAPIGetInstallScript(ctx context.Context, re
 
 func (c *Client) InventoryAPIListZones(ctx context.Context, params *InventoryAPIListZonesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewInventoryAPIListZonesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) WorkloadOptimizationAPIPatchWorkloadV2WithBody(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWorkloadOptimizationAPIPatchWorkloadV2RequestWithBody(c.Server, clusterId, workloadId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) WorkloadOptimizationAPIPatchWorkloadV2(ctx context.Context, clusterId string, workloadId string, body WorkloadOptimizationAPIPatchWorkloadV2JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWorkloadOptimizationAPIPatchWorkloadV2Request(c.Server, clusterId, workloadId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8086,6 +8203,22 @@ func NewRbacServiceAPIListRoleBindingsRequest(server string, organizationId stri
 
 		}
 
+		if params.ScopeId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "scopeId", runtime.ParamLocationQuery, *params.ScopeId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -8328,6 +8461,22 @@ func NewRbacServiceAPIListRolesRequest(server string, organizationId string, par
 		if params.PageCursor != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page.cursor", runtime.ParamLocationQuery, *params.PageCursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Type != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -8954,6 +9103,22 @@ func NewUsersAPIListOrganizationUsersRequest(server string, organizationId strin
 		if params.IncludeGroups != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeGroups", runtime.ParamLocationQuery, *params.IncludeGroups); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.RoleId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "roleId", runtime.ParamLocationQuery, *params.RoleId); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -9614,6 +9779,71 @@ func NewCommitmentsAPIGetCommitmentsRequest(server string, params *CommitmentsAP
 		if params.IncludeUsagePerInstanceTypes != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeUsagePerInstanceTypes", runtime.ParamLocationQuery, *params.IncludeUsagePerInstanceTypes); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCommitmentsAPIGetCommitmentsDiscountedPricesRequest generates requests for CommitmentsAPIGetCommitmentsDiscountedPrices
+func NewCommitmentsAPIGetCommitmentsDiscountedPricesRequest(server string, params *CommitmentsAPIGetCommitmentsDiscountedPricesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/savings/commitments/discounted-prices")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page.limit", runtime.ParamLocationQuery, *params.PageLimit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageCursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page.cursor", runtime.ParamLocationQuery, *params.PageCursor); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -10480,6 +10710,46 @@ func NewRuntimeSecurityAPICloseAnomaliesRequestWithBody(server string, contentTy
 	}
 
 	operationPath := fmt.Sprintf("/v1/security/runtime/anomalies/close")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRuntimeSecurityAPITriggerAnomaliesWebhookRequest calls the generic RuntimeSecurityAPITriggerAnomaliesWebhook builder with application/json body
+func NewRuntimeSecurityAPITriggerAnomaliesWebhookRequest(server string, body RuntimeSecurityAPITriggerAnomaliesWebhookJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRuntimeSecurityAPITriggerAnomaliesWebhookRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewRuntimeSecurityAPITriggerAnomaliesWebhookRequestWithBody generates requests for RuntimeSecurityAPITriggerAnomaliesWebhook with any type of body
+func NewRuntimeSecurityAPITriggerAnomaliesWebhookRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/security/runtime/anomalies/trigger-webhook")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -12577,6 +12847,22 @@ func NewRuntimeSecurityAPIGetClusterWorkloadsNetflowRequest(server string, clust
 
 		}
 
+		if params.UsePodDetails != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "usePodDetails", runtime.ParamLocationQuery, *params.UsePodDetails); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -12751,6 +13037,53 @@ func NewSSOAPIUpdateSSOConnectionRequestWithBody(server string, id string, conte
 	}
 
 	operationPath := fmt.Sprintf("/v1/sso-connections/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSSOAPISetSyncForSSOConnectionRequest calls the generic SSOAPISetSyncForSSOConnection builder with application/json body
+func NewSSOAPISetSyncForSSOConnectionRequest(server string, id string, body SSOAPISetSyncForSSOConnectionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSSOAPISetSyncForSSOConnectionRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewSSOAPISetSyncForSSOConnectionRequestWithBody generates requests for SSOAPISetSyncForSSOConnection with any type of body
+func NewSSOAPISetSyncForSSOConnectionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/sso-connections/%s/sync", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -13550,6 +13883,78 @@ func NewWorkloadOptimizationAPIGetWorkloadsSummaryRequest(server string, cluster
 	return req, nil
 }
 
+// NewWorkloadOptimizationAPIGetWorkloadsSummaryMetricsRequest generates requests for WorkloadOptimizationAPIGetWorkloadsSummaryMetrics
+func NewWorkloadOptimizationAPIGetWorkloadsSummaryMetricsRequest(server string, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clusterId", runtime.ParamLocationPath, clusterId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/workload-autoscaling/clusters/%s/workloads-summary-metrics", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.FromTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fromTime", runtime.ParamLocationQuery, *params.FromTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ToTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "toTime", runtime.ParamLocationQuery, *params.ToTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewWorkloadOptimizationAPIGetWorkloadRequest generates requests for WorkloadOptimizationAPIGetWorkload
 func NewWorkloadOptimizationAPIGetWorkloadRequest(server string, clusterId string, workloadId string, params *WorkloadOptimizationAPIGetWorkloadParams) (*http.Request, error) {
 	var err error
@@ -13778,6 +14183,60 @@ func NewInventoryAPIListZonesRequest(server string, params *InventoryAPIListZone
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewWorkloadOptimizationAPIPatchWorkloadV2Request calls the generic WorkloadOptimizationAPIPatchWorkloadV2 builder with application/json body
+func NewWorkloadOptimizationAPIPatchWorkloadV2Request(server string, clusterId string, workloadId string, body WorkloadOptimizationAPIPatchWorkloadV2JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewWorkloadOptimizationAPIPatchWorkloadV2RequestWithBody(server, clusterId, workloadId, "application/json", bodyReader)
+}
+
+// NewWorkloadOptimizationAPIPatchWorkloadV2RequestWithBody generates requests for WorkloadOptimizationAPIPatchWorkloadV2 with any type of body
+func NewWorkloadOptimizationAPIPatchWorkloadV2RequestWithBody(server string, clusterId string, workloadId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clusterId", runtime.ParamLocationPath, clusterId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workloadId", runtime.ParamLocationPath, workloadId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/workload-autoscaling/clusters/%s/workloads/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -14331,6 +14790,9 @@ type ClientWithResponsesInterface interface {
 	// CommitmentsAPIGetCommitments request
 	CommitmentsAPIGetCommitmentsWithResponse(ctx context.Context, params *CommitmentsAPIGetCommitmentsParams) (*CommitmentsAPIGetCommitmentsResponse, error)
 
+	// CommitmentsAPIGetCommitmentsDiscountedPrices request
+	CommitmentsAPIGetCommitmentsDiscountedPricesWithResponse(ctx context.Context, params *CommitmentsAPIGetCommitmentsDiscountedPricesParams) (*CommitmentsAPIGetCommitmentsDiscountedPricesResponse, error)
+
 	// CommitmentsAPIImportAzureReservations request  with any body
 	CommitmentsAPIImportAzureReservationsWithBodyWithResponse(ctx context.Context, params *CommitmentsAPIImportAzureReservationsParams, contentType string, body io.Reader) (*CommitmentsAPIImportAzureReservationsResponse, error)
 
@@ -14384,6 +14846,11 @@ type ClientWithResponsesInterface interface {
 	RuntimeSecurityAPICloseAnomaliesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader) (*RuntimeSecurityAPICloseAnomaliesResponse, error)
 
 	RuntimeSecurityAPICloseAnomaliesWithResponse(ctx context.Context, body RuntimeSecurityAPICloseAnomaliesJSONRequestBody) (*RuntimeSecurityAPICloseAnomaliesResponse, error)
+
+	// RuntimeSecurityAPITriggerAnomaliesWebhook request  with any body
+	RuntimeSecurityAPITriggerAnomaliesWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader) (*RuntimeSecurityAPITriggerAnomaliesWebhookResponse, error)
+
+	RuntimeSecurityAPITriggerAnomaliesWebhookWithResponse(ctx context.Context, body RuntimeSecurityAPITriggerAnomaliesWebhookJSONRequestBody) (*RuntimeSecurityAPITriggerAnomaliesWebhookResponse, error)
 
 	// RuntimeSecurityAPIGetAnomaly request
 	RuntimeSecurityAPIGetAnomalyWithResponse(ctx context.Context, id string) (*RuntimeSecurityAPIGetAnomalyResponse, error)
@@ -14499,6 +14966,11 @@ type ClientWithResponsesInterface interface {
 
 	SSOAPIUpdateSSOConnectionWithResponse(ctx context.Context, id string, body SSOAPIUpdateSSOConnectionJSONRequestBody) (*SSOAPIUpdateSSOConnectionResponse, error)
 
+	// SSOAPISetSyncForSSOConnection request  with any body
+	SSOAPISetSyncForSSOConnectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader) (*SSOAPISetSyncForSSOConnectionResponse, error)
+
+	SSOAPISetSyncForSSOConnectionWithResponse(ctx context.Context, id string, body SSOAPISetSyncForSSOConnectionJSONRequestBody) (*SSOAPISetSyncForSSOConnectionResponse, error)
+
 	// ScheduledRebalancingAPIListAvailableRebalancingTZ request
 	ScheduledRebalancingAPIListAvailableRebalancingTZWithResponse(ctx context.Context) (*ScheduledRebalancingAPIListAvailableRebalancingTZResponse, error)
 
@@ -14552,6 +15024,9 @@ type ClientWithResponsesInterface interface {
 	// WorkloadOptimizationAPIGetWorkloadsSummary request
 	WorkloadOptimizationAPIGetWorkloadsSummaryWithResponse(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryParams) (*WorkloadOptimizationAPIGetWorkloadsSummaryResponse, error)
 
+	// WorkloadOptimizationAPIGetWorkloadsSummaryMetrics request
+	WorkloadOptimizationAPIGetWorkloadsSummaryMetricsWithResponse(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsParams) (*WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse, error)
+
 	// WorkloadOptimizationAPIGetWorkload request
 	WorkloadOptimizationAPIGetWorkloadWithResponse(ctx context.Context, clusterId string, workloadId string, params *WorkloadOptimizationAPIGetWorkloadParams) (*WorkloadOptimizationAPIGetWorkloadResponse, error)
 
@@ -14563,6 +15038,11 @@ type ClientWithResponsesInterface interface {
 
 	// InventoryAPIListZones request
 	InventoryAPIListZonesWithResponse(ctx context.Context, params *InventoryAPIListZonesParams) (*InventoryAPIListZonesResponse, error)
+
+	// WorkloadOptimizationAPIPatchWorkloadV2 request  with any body
+	WorkloadOptimizationAPIPatchWorkloadV2WithBodyWithResponse(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader) (*WorkloadOptimizationAPIPatchWorkloadV2Response, error)
+
+	WorkloadOptimizationAPIPatchWorkloadV2WithResponse(ctx context.Context, clusterId string, workloadId string, body WorkloadOptimizationAPIPatchWorkloadV2JSONRequestBody) (*WorkloadOptimizationAPIPatchWorkloadV2Response, error)
 
 	// WorkloadOptimizationAPIUpdateWorkloadV2 request  with any body
 	WorkloadOptimizationAPIUpdateWorkloadV2WithBodyWithResponse(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader) (*WorkloadOptimizationAPIUpdateWorkloadV2Response, error)
@@ -18210,6 +18690,36 @@ func (r CommitmentsAPIGetCommitmentsResponse) GetBody() []byte {
 
 // TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 
+type CommitmentsAPIGetCommitmentsDiscountedPricesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CastaiInventoryV1beta1GetCommitmentsDiscountedPricesResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CommitmentsAPIGetCommitmentsDiscountedPricesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CommitmentsAPIGetCommitmentsDiscountedPricesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r CommitmentsAPIGetCommitmentsDiscountedPricesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
 type CommitmentsAPIImportAzureReservationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18622,6 +19132,36 @@ func (r RuntimeSecurityAPICloseAnomaliesResponse) StatusCode() int {
 // TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 // Body returns body of byte array
 func (r RuntimeSecurityAPICloseAnomaliesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
+type RuntimeSecurityAPITriggerAnomaliesWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *RuntimeV1TriggerAnomaliesWebhookResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r RuntimeSecurityAPITriggerAnomaliesWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RuntimeSecurityAPITriggerAnomaliesWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r RuntimeSecurityAPITriggerAnomaliesWebhookResponse) GetBody() []byte {
 	return r.Body
 }
 
@@ -19527,6 +20067,36 @@ func (r SSOAPIUpdateSSOConnectionResponse) GetBody() []byte {
 
 // TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 
+type SSOAPISetSyncForSSOConnectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CastaiSsoV1beta1SetSyncForSSOConnectionResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r SSOAPISetSyncForSSOConnectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SSOAPISetSyncForSSOConnectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r SSOAPISetSyncForSSOConnectionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
 type ScheduledRebalancingAPIListAvailableRebalancingTZResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -19977,6 +20547,36 @@ func (r WorkloadOptimizationAPIGetWorkloadsSummaryResponse) GetBody() []byte {
 
 // TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 
+type WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WorkloadoptimizationV1GetWorkloadsSummaryMetricsResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
 type WorkloadOptimizationAPIGetWorkloadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -20091,6 +20691,36 @@ func (r InventoryAPIListZonesResponse) StatusCode() int {
 // TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
 // Body returns body of byte array
 func (r InventoryAPIListZonesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// TODO: </castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+
+type WorkloadOptimizationAPIPatchWorkloadV2Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WorkloadoptimizationV1UpdateWorkloadResponseV2
+}
+
+// Status returns HTTPResponse.Status
+func (r WorkloadOptimizationAPIPatchWorkloadV2Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r WorkloadOptimizationAPIPatchWorkloadV2Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// TODO: <castai customization> to have common interface. https://github.com/deepmap/oapi-codegen/issues/240
+// Body returns body of byte array
+func (r WorkloadOptimizationAPIPatchWorkloadV2Response) GetBody() []byte {
 	return r.Body
 }
 
@@ -21567,6 +22197,15 @@ func (c *ClientWithResponses) CommitmentsAPIGetCommitmentsWithResponse(ctx conte
 	return ParseCommitmentsAPIGetCommitmentsResponse(rsp)
 }
 
+// CommitmentsAPIGetCommitmentsDiscountedPricesWithResponse request returning *CommitmentsAPIGetCommitmentsDiscountedPricesResponse
+func (c *ClientWithResponses) CommitmentsAPIGetCommitmentsDiscountedPricesWithResponse(ctx context.Context, params *CommitmentsAPIGetCommitmentsDiscountedPricesParams) (*CommitmentsAPIGetCommitmentsDiscountedPricesResponse, error) {
+	rsp, err := c.CommitmentsAPIGetCommitmentsDiscountedPrices(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitmentsAPIGetCommitmentsDiscountedPricesResponse(rsp)
+}
+
 // CommitmentsAPIImportAzureReservationsWithBodyWithResponse request with arbitrary body returning *CommitmentsAPIImportAzureReservationsResponse
 func (c *ClientWithResponses) CommitmentsAPIImportAzureReservationsWithBodyWithResponse(ctx context.Context, params *CommitmentsAPIImportAzureReservationsParams, contentType string, body io.Reader) (*CommitmentsAPIImportAzureReservationsResponse, error) {
 	rsp, err := c.CommitmentsAPIImportAzureReservationsWithBody(ctx, params, contentType, body)
@@ -21739,6 +22378,23 @@ func (c *ClientWithResponses) RuntimeSecurityAPICloseAnomaliesWithResponse(ctx c
 		return nil, err
 	}
 	return ParseRuntimeSecurityAPICloseAnomaliesResponse(rsp)
+}
+
+// RuntimeSecurityAPITriggerAnomaliesWebhookWithBodyWithResponse request with arbitrary body returning *RuntimeSecurityAPITriggerAnomaliesWebhookResponse
+func (c *ClientWithResponses) RuntimeSecurityAPITriggerAnomaliesWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader) (*RuntimeSecurityAPITriggerAnomaliesWebhookResponse, error) {
+	rsp, err := c.RuntimeSecurityAPITriggerAnomaliesWebhookWithBody(ctx, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRuntimeSecurityAPITriggerAnomaliesWebhookResponse(rsp)
+}
+
+func (c *ClientWithResponses) RuntimeSecurityAPITriggerAnomaliesWebhookWithResponse(ctx context.Context, body RuntimeSecurityAPITriggerAnomaliesWebhookJSONRequestBody) (*RuntimeSecurityAPITriggerAnomaliesWebhookResponse, error) {
+	rsp, err := c.RuntimeSecurityAPITriggerAnomaliesWebhook(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRuntimeSecurityAPITriggerAnomaliesWebhookResponse(rsp)
 }
 
 // RuntimeSecurityAPIGetAnomalyWithResponse request returning *RuntimeSecurityAPIGetAnomalyResponse
@@ -22107,6 +22763,23 @@ func (c *ClientWithResponses) SSOAPIUpdateSSOConnectionWithResponse(ctx context.
 	return ParseSSOAPIUpdateSSOConnectionResponse(rsp)
 }
 
+// SSOAPISetSyncForSSOConnectionWithBodyWithResponse request with arbitrary body returning *SSOAPISetSyncForSSOConnectionResponse
+func (c *ClientWithResponses) SSOAPISetSyncForSSOConnectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader) (*SSOAPISetSyncForSSOConnectionResponse, error) {
+	rsp, err := c.SSOAPISetSyncForSSOConnectionWithBody(ctx, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSSOAPISetSyncForSSOConnectionResponse(rsp)
+}
+
+func (c *ClientWithResponses) SSOAPISetSyncForSSOConnectionWithResponse(ctx context.Context, id string, body SSOAPISetSyncForSSOConnectionJSONRequestBody) (*SSOAPISetSyncForSSOConnectionResponse, error) {
+	rsp, err := c.SSOAPISetSyncForSSOConnection(ctx, id, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSSOAPISetSyncForSSOConnectionResponse(rsp)
+}
+
 // ScheduledRebalancingAPIListAvailableRebalancingTZWithResponse request returning *ScheduledRebalancingAPIListAvailableRebalancingTZResponse
 func (c *ClientWithResponses) ScheduledRebalancingAPIListAvailableRebalancingTZWithResponse(ctx context.Context) (*ScheduledRebalancingAPIListAvailableRebalancingTZResponse, error) {
 	rsp, err := c.ScheduledRebalancingAPIListAvailableRebalancingTZ(ctx)
@@ -22274,6 +22947,15 @@ func (c *ClientWithResponses) WorkloadOptimizationAPIGetWorkloadsSummaryWithResp
 	return ParseWorkloadOptimizationAPIGetWorkloadsSummaryResponse(rsp)
 }
 
+// WorkloadOptimizationAPIGetWorkloadsSummaryMetricsWithResponse request returning *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse
+func (c *ClientWithResponses) WorkloadOptimizationAPIGetWorkloadsSummaryMetricsWithResponse(ctx context.Context, clusterId string, params *WorkloadOptimizationAPIGetWorkloadsSummaryMetricsParams) (*WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse, error) {
+	rsp, err := c.WorkloadOptimizationAPIGetWorkloadsSummaryMetrics(ctx, clusterId, params)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse(rsp)
+}
+
 // WorkloadOptimizationAPIGetWorkloadWithResponse request returning *WorkloadOptimizationAPIGetWorkloadResponse
 func (c *ClientWithResponses) WorkloadOptimizationAPIGetWorkloadWithResponse(ctx context.Context, clusterId string, workloadId string, params *WorkloadOptimizationAPIGetWorkloadParams) (*WorkloadOptimizationAPIGetWorkloadResponse, error) {
 	rsp, err := c.WorkloadOptimizationAPIGetWorkload(ctx, clusterId, workloadId, params)
@@ -22308,6 +22990,23 @@ func (c *ClientWithResponses) InventoryAPIListZonesWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseInventoryAPIListZonesResponse(rsp)
+}
+
+// WorkloadOptimizationAPIPatchWorkloadV2WithBodyWithResponse request with arbitrary body returning *WorkloadOptimizationAPIPatchWorkloadV2Response
+func (c *ClientWithResponses) WorkloadOptimizationAPIPatchWorkloadV2WithBodyWithResponse(ctx context.Context, clusterId string, workloadId string, contentType string, body io.Reader) (*WorkloadOptimizationAPIPatchWorkloadV2Response, error) {
+	rsp, err := c.WorkloadOptimizationAPIPatchWorkloadV2WithBody(ctx, clusterId, workloadId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWorkloadOptimizationAPIPatchWorkloadV2Response(rsp)
+}
+
+func (c *ClientWithResponses) WorkloadOptimizationAPIPatchWorkloadV2WithResponse(ctx context.Context, clusterId string, workloadId string, body WorkloadOptimizationAPIPatchWorkloadV2JSONRequestBody) (*WorkloadOptimizationAPIPatchWorkloadV2Response, error) {
+	rsp, err := c.WorkloadOptimizationAPIPatchWorkloadV2(ctx, clusterId, workloadId, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWorkloadOptimizationAPIPatchWorkloadV2Response(rsp)
 }
 
 // WorkloadOptimizationAPIUpdateWorkloadV2WithBodyWithResponse request with arbitrary body returning *WorkloadOptimizationAPIUpdateWorkloadV2Response
@@ -25474,6 +26173,32 @@ func ParseCommitmentsAPIGetCommitmentsResponse(rsp *http.Response) (*Commitments
 	return response, nil
 }
 
+// ParseCommitmentsAPIGetCommitmentsDiscountedPricesResponse parses an HTTP response from a CommitmentsAPIGetCommitmentsDiscountedPricesWithResponse call
+func ParseCommitmentsAPIGetCommitmentsDiscountedPricesResponse(rsp *http.Response) (*CommitmentsAPIGetCommitmentsDiscountedPricesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CommitmentsAPIGetCommitmentsDiscountedPricesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CastaiInventoryV1beta1GetCommitmentsDiscountedPricesResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseCommitmentsAPIImportAzureReservationsResponse parses an HTTP response from a CommitmentsAPIImportAzureReservationsWithResponse call
 func ParseCommitmentsAPIImportAzureReservationsResponse(rsp *http.Response) (*CommitmentsAPIImportAzureReservationsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -25798,6 +26523,32 @@ func ParseRuntimeSecurityAPICloseAnomaliesResponse(rsp *http.Response) (*Runtime
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RuntimeV1CloseAnomaliesResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRuntimeSecurityAPITriggerAnomaliesWebhookResponse parses an HTTP response from a RuntimeSecurityAPITriggerAnomaliesWebhookWithResponse call
+func ParseRuntimeSecurityAPITriggerAnomaliesWebhookResponse(rsp *http.Response) (*RuntimeSecurityAPITriggerAnomaliesWebhookResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RuntimeSecurityAPITriggerAnomaliesWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RuntimeV1TriggerAnomaliesWebhookResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26588,6 +27339,32 @@ func ParseSSOAPIUpdateSSOConnectionResponse(rsp *http.Response) (*SSOAPIUpdateSS
 	return response, nil
 }
 
+// ParseSSOAPISetSyncForSSOConnectionResponse parses an HTTP response from a SSOAPISetSyncForSSOConnectionWithResponse call
+func ParseSSOAPISetSyncForSSOConnectionResponse(rsp *http.Response) (*SSOAPISetSyncForSSOConnectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SSOAPISetSyncForSSOConnectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CastaiSsoV1beta1SetSyncForSSOConnectionResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseScheduledRebalancingAPIListAvailableRebalancingTZResponse parses an HTTP response from a ScheduledRebalancingAPIListAvailableRebalancingTZWithResponse call
 func ParseScheduledRebalancingAPIListAvailableRebalancingTZResponse(rsp *http.Response) (*ScheduledRebalancingAPIListAvailableRebalancingTZResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -26978,6 +27755,32 @@ func ParseWorkloadOptimizationAPIGetWorkloadsSummaryResponse(rsp *http.Response)
 	return response, nil
 }
 
+// ParseWorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse parses an HTTP response from a WorkloadOptimizationAPIGetWorkloadsSummaryMetricsWithResponse call
+func ParseWorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse(rsp *http.Response) (*WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &WorkloadOptimizationAPIGetWorkloadsSummaryMetricsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkloadoptimizationV1GetWorkloadsSummaryMetricsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseWorkloadOptimizationAPIGetWorkloadResponse parses an HTTP response from a WorkloadOptimizationAPIGetWorkloadWithResponse call
 func ParseWorkloadOptimizationAPIGetWorkloadResponse(rsp *http.Response) (*WorkloadOptimizationAPIGetWorkloadResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -27062,6 +27865,32 @@ func ParseInventoryAPIListZonesResponse(rsp *http.Response) (*InventoryAPIListZo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CastaiInventoryV1beta1ListZonesResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseWorkloadOptimizationAPIPatchWorkloadV2Response parses an HTTP response from a WorkloadOptimizationAPIPatchWorkloadV2WithResponse call
+func ParseWorkloadOptimizationAPIPatchWorkloadV2Response(rsp *http.Response) (*WorkloadOptimizationAPIPatchWorkloadV2Response, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &WorkloadOptimizationAPIPatchWorkloadV2Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkloadoptimizationV1UpdateWorkloadResponseV2
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
