@@ -1,23 +1,31 @@
 package castai
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	sdkterraform "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/castai/terraform-provider-castai/castai/sdk"
+	mock_sdk "github.com/castai/terraform-provider-castai/castai/sdk/mock"
 )
 
-func TestAccResourceWorkloadScalingPolicy(t *testing.T) {
+func TestAccGKE_ResourceWorkloadScalingPolicy(t *testing.T) {
 	rName := fmt.Sprintf("%v-policy-%v", ResourcePrefix, acctest.RandString(8))
 	resourceName := "castai_workload_scaling_policy.test"
 	clusterName := "tf-core-acc-20230723"
@@ -34,6 +42,8 @@ func TestAccResourceWorkloadScalingPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "apply_type", "IMMEDIATE"),
 					resource.TestCheckResourceAttr(resourceName, "management_option", "READ_ONLY"),
+					resource.TestCheckResourceAttr(resourceName, "excluded_containers.0", "a"),
+					resource.TestCheckResourceAttr(resourceName, "excluded_containers.1", "b"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.function", "QUANTILE"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.overhead", "0.05"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.apply_threshold_strategy.0.type", "PERCENTAGE"),
@@ -83,6 +93,8 @@ func TestAccResourceWorkloadScalingPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName+"-updated"),
 					resource.TestCheckResourceAttr(resourceName, "apply_type", "IMMEDIATE"),
 					resource.TestCheckResourceAttr(resourceName, "management_option", "MANAGED"),
+					resource.TestCheckResourceAttr(resourceName, "excluded_containers.0", "a"),
+					resource.TestCheckResourceAttr(resourceName, "excluded_containers.1", "b"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.function", "QUANTILE"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.overhead", "0.15"),
 					resource.TestCheckResourceAttr(resourceName, "cpu.0.apply_threshold", "0.1"),
@@ -123,17 +135,126 @@ func TestAccResourceWorkloadScalingPolicy(t *testing.T) {
 				Source:            "hashicorp/google-beta",
 				VersionConstraint: "> 4.75.0",
 			},
+			"helm": {
+				Source:            "hashicorp/helm",
+				VersionConstraint: "~> 2.17.0",
+			},
 		},
 	})
+}
+
+func clusterConnectConfig(clusterName, projectID, name string) string {
+	return testAccGKEClusterConfig(name, clusterName, projectID)
+}
+
+// clusterComponentsConfig returns agent, cluster-controller, workload-autoscaler helm release
+// installation configs. workload-autoscaler is installed since some features are checking WA version.
+func clusterComponentsConfig(clusterName, projectID, name string) string {
+	cfg := fmt.Sprintf(`
+	resource "helm_release" "castai_agent" {
+		name             = "castai-agent"
+		repository       = "https://castai.github.io/helm-charts"
+		chart            = "castai-agent"
+		namespace        = "castai-agent"
+		create_namespace = true
+		cleanup_on_fail  = true
+		wait             = true
+		replace          = true
+	
+		set {
+			name  = "provider"
+			value = "gke"
+		}
+	
+		set_sensitive {
+			name  = "apiKey"
+			value = %[1]q
+		}
+	
+		set {
+			name  = "apiURL"
+			value = %[2]q
+		}
+	
+		set {
+			name  = "createNamespace"
+			value = "false"
+		}
+	
+		depends_on = [castai_gke_cluster.test]
+	}
+	
+	resource "helm_release" "castai_cluster_controller" {
+		depends_on       = [helm_release.castai_agent]
+		name             = "castai-cluster-controller"
+		repository       = "https://castai.github.io/helm-charts"
+		chart            = "castai-cluster-controller"
+		namespace        = "castai-agent"
+		create_namespace = false
+		cleanup_on_fail  = true
+		wait             = true
+		replace          = true
+
+		set_sensitive {
+			name  = "castai.apiKey"
+			value = %[1]q
+		}
+	
+		set {
+			name  = "castai.apiURL"
+			value = %[2]q
+		}
+	
+		set {
+			name  = "castai.clusterID"
+			value = castai_gke_cluster.test.id
+		}
+	
+		set {
+			name  = "autoscaling.enabled"
+			value = "false"
+		}
+	}
+	
+	resource "helm_release" "castai_workload_autoscaler" {
+		depends_on       = [helm_release.castai_agent, helm_release.castai_cluster_controller]
+		name             = "castai-workload-autoscaler"
+		repository       = "https://castai.github.io/helm-charts"
+		chart            = "castai-workload-autoscaler"
+		namespace        = "castai-agent"
+		create_namespace = false
+		cleanup_on_fail  = true
+		wait             = true
+		replace          = true
+
+		set_sensitive {
+			name  = "castai.apiKey"
+			value = %[1]q
+		}
+	
+		set {
+			name  = "castai.apiURL"
+			value = %[2]q
+		}
+	
+		set {
+			name  = "castai.clusterID"
+			value = castai_gke_cluster.test.id
+		}
+	}`, getAPIToken(), getAPIUrl())
+	return ConfigCompose(clusterConnectConfig(clusterName, projectID, name), cfg)
 }
 
 func scalingPolicyConfig(clusterName, projectID, name string) string {
 	cfg := fmt.Sprintf(`
 	resource "castai_workload_scaling_policy" "test" {
+  		depends_on          = [helm_release.castai_workload_autoscaler]
+
 		name 				= %[1]q
 		cluster_id			= castai_gke_cluster.test.id
 		apply_type			= "IMMEDIATE"
 		management_option	= "READ_ONLY"
+		excluded_containers = ["a", "b"]
 		confidence {
 			threshold = 0.4
 		}
@@ -192,17 +313,20 @@ func scalingPolicyConfig(clusterName, projectID, name string) string {
 		}
 	}`, name)
 
-	return ConfigCompose(testAccGKEClusterConfig(name, clusterName, projectID), cfg)
+	return ConfigCompose(clusterComponentsConfig(clusterName, projectID, name), cfg)
 }
 
 func scalingPolicyConfigUpdated(clusterName, projectID, name string) string {
 	updatedName := name + "-updated"
 	cfg := fmt.Sprintf(`
 	resource "castai_workload_scaling_policy" "test" {
+  		depends_on          = [helm_release.castai_workload_autoscaler]
+
 		name 				= %[1]q
 		cluster_id			= castai_gke_cluster.test.id
 		apply_type			= "IMMEDIATE"
 		management_option	= "MANAGED"
+		excluded_containers = ["a", "b"]
 		assignment_rules {
 			rules {
 				namespace {
@@ -270,7 +394,7 @@ func scalingPolicyConfigUpdated(clusterName, projectID, name string) string {
 		}
 	}`, updatedName)
 
-	return ConfigCompose(testAccGKEClusterConfig(name, clusterName, projectID), cfg)
+	return ConfigCompose(clusterComponentsConfig(clusterName, projectID, name), cfg)
 }
 
 func testAccCheckScalingPolicyDestroy(s *terraform.State) error {
@@ -297,6 +421,18 @@ func testAccCheckScalingPolicyDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func getAPIToken() string {
+	return os.Getenv("CASTAI_API_TOKEN")
+}
+
+func getAPIUrl() string {
+	apiUrl := os.Getenv("CASTAI_API_URL")
+	if apiUrl == "" {
+		return "https://api.dev-master.cast.ai"
+	}
+	return apiUrl
 }
 
 func Test_validateResourcePolicy(t *testing.T) {
@@ -394,6 +530,68 @@ func Test_validateResourcePolicy(t *testing.T) {
 			},
 			errMsg: `field "cpu": field "apply_threshold_strategy": field "exponent": value must be set`,
 		},
+		"should not return error when limit strategy has only_if_original_exist set to true": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "MULTIPLIER",
+					"multiplier":             2.0,
+					"only_if_original_exist": true,
+				}},
+			},
+		},
+		"should not return error when limit strategy has only_if_original_exist set to false": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "MULTIPLIER",
+					"multiplier":             2.0,
+					"only_if_original_exist": false,
+				}},
+			},
+		},
+		"should not return error when limit strategy has only_if_original_lower set to true": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "MULTIPLIER",
+					"multiplier":             1.5,
+					"only_if_original_lower": true,
+				}},
+			},
+		},
+		"should not return error when limit strategy has only_if_original_lower set to false": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "MULTIPLIER",
+					"multiplier":             1.5,
+					"only_if_original_lower": false,
+				}},
+			},
+		},
+		"should not return error when limit strategy has both only_if_original_exist and only_if_original_lower": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "MULTIPLIER",
+					"multiplier":             3.0,
+					"only_if_original_exist": true,
+					"only_if_original_lower": true,
+				}},
+			},
+		},
+		"should not return error when limit strategy NO_LIMIT has only_if_original_exist": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "NO_LIMIT",
+					"only_if_original_exist": true,
+				}},
+			},
+		},
+		"should not return error when limit strategy KEEP_LIMITS has only_if_original_lower": {
+			args: map[string]interface{}{
+				"limit": []interface{}{map[string]interface{}{
+					"type":                   "KEEP_LIMITS",
+					"only_if_original_lower": true,
+				}},
+			},
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -403,6 +601,59 @@ func Test_validateResourcePolicy(t *testing.T) {
 			} else {
 				require.EqualError(t, err, tt.errMsg)
 			}
+		})
+	}
+}
+
+func Test_toWorkloadScalingPolicies_limit(t *testing.T) {
+	tests := map[string]struct {
+		args map[string]any
+		exp  sdk.WorkloadoptimizationV1ResourceLimitStrategy
+	}{
+		"maintain ratio": {
+			args: map[string]any{
+				"type": "MAINTAIN_RATIO",
+			},
+			exp: sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+				Type: sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMAINTAINRATIO,
+			},
+		},
+		"no limit": {
+			args: map[string]any{
+				"type": "NO_LIMIT",
+			},
+			exp: sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+				Type: sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeNOLIMIT,
+			},
+		},
+		"keep limits": {
+			args: map[string]any{
+				"type": "KEEP_LIMITS",
+			},
+			exp: sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+				Type: sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeKEEPLIMITS,
+			},
+		},
+		"multiplier": {
+			args: map[string]any{
+				"type":       "MULTIPLIER",
+				"multiplier": 2.5,
+			},
+			exp: sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+				Type:       sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+				Multiplier: lo.ToPtr(2.5),
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			args := map[string]any{
+				"limit": []any{tc.args},
+			}
+			got, err := toWorkloadScalingPolicies("cpu", args)
+			require.NoError(t, err)
+			require.NotNil(t, got.Limit)
+			require.Equal(t, tc.exp, *got.Limit)
 		})
 	}
 }
@@ -453,6 +704,42 @@ func Test_toRolloutBehavior(t *testing.T) {
 				Type: lo.ToPtr(sdk.NODISRUPTION),
 			},
 		},
+		"should return rollout behavior settings with prefer_one_by_one": {
+			args: map[string]any{
+				FieldRolloutBehaviorType:               FieldRolloutBehaviorNoDisruptionType,
+				FieldRolloutBehaviorPreferOneByOneType: true,
+			},
+			exp: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				Type:           lo.ToPtr(sdk.NODISRUPTION),
+				PreferOneByOne: lo.ToPtr(true),
+			},
+		},
+		"should return rollout behavior settings with prefer_one_by_one false": {
+			args: map[string]any{
+				FieldRolloutBehaviorType:               FieldRolloutBehaviorNoDisruptionType,
+				FieldRolloutBehaviorPreferOneByOneType: false,
+			},
+			exp: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				Type:           lo.ToPtr(sdk.NODISRUPTION),
+				PreferOneByOne: lo.ToPtr(false),
+			},
+		},
+		"should return rollout behavior settings with only prefer_one_by_one": {
+			args: map[string]any{
+				FieldRolloutBehaviorPreferOneByOneType: true,
+			},
+			exp: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				PreferOneByOne: lo.ToPtr(true),
+			},
+		},
+		"should return nil when only prefer_one_by_one is false": {
+			args: map[string]any{
+				FieldRolloutBehaviorPreferOneByOneType: false,
+			},
+			exp: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				PreferOneByOne: lo.ToPtr(false),
+			},
+		},
 		"should return nil on empty map": {
 			args: map[string]any{},
 			exp:  nil,
@@ -463,6 +750,432 @@ func Test_toRolloutBehavior(t *testing.T) {
 			r := require.New(t)
 			got := toRolloutBehavior(tt.args)
 			r.Equal(tt.exp, got)
+		})
+	}
+}
+
+func Test_toRolloutBehaviorMap(t *testing.T) {
+	tests := map[string]struct {
+		args *sdk.WorkloadoptimizationV1RolloutBehaviorSettings
+		exp  []map[string]any
+	}{
+		"should return rollout behavior map": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				Type: lo.ToPtr(sdk.NODISRUPTION),
+			},
+			exp: []map[string]any{
+				{
+					FieldRolloutBehaviorType: string(sdk.NODISRUPTION),
+				},
+			},
+		},
+		"should return rollout behavior map with prefer_one_by_one": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				Type:           lo.ToPtr(sdk.NODISRUPTION),
+				PreferOneByOne: lo.ToPtr(true),
+			},
+			exp: []map[string]any{
+				{
+					FieldRolloutBehaviorType:               string(sdk.NODISRUPTION),
+					FieldRolloutBehaviorPreferOneByOneType: true,
+				},
+			},
+		},
+		"should return rollout behavior map with prefer_one_by_one false": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				Type:           lo.ToPtr(sdk.NODISRUPTION),
+				PreferOneByOne: lo.ToPtr(false),
+			},
+			exp: []map[string]any{
+				{
+					FieldRolloutBehaviorType:               string(sdk.NODISRUPTION),
+					FieldRolloutBehaviorPreferOneByOneType: false,
+				},
+			},
+		},
+		"should return rollout behavior map with only prefer_one_by_one": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				PreferOneByOne: lo.ToPtr(true),
+			},
+			exp: []map[string]any{
+				{
+					FieldRolloutBehaviorPreferOneByOneType: true,
+				},
+			},
+		},
+		"should return rollout behavior map with only prefer_one_by_one false": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{
+				PreferOneByOne: lo.ToPtr(false),
+			},
+			exp: []map[string]any{
+				{
+					FieldRolloutBehaviorPreferOneByOneType: false,
+				},
+			},
+		},
+		"should return nil for nil input": {
+			args: nil,
+			exp:  nil,
+		},
+		"should return nil for empty settings": {
+			args: &sdk.WorkloadoptimizationV1RolloutBehaviorSettings{},
+			exp:  nil,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			r := require.New(t)
+			got := toRolloutBehaviorMap(tt.args)
+			r.Equal(tt.exp, got)
+		})
+	}
+}
+
+func Test_resourceWorkloadScalingPolicyCreate(t *testing.T) {
+	organizationId := "63d2af53-9a42-4968-be1e-39316ebfd8d4"
+	clusterId := "4e4cd9eb-82eb-407e-a926-e5fef81cab50"
+	name := "test-sp"
+	policyId := "98173807-6568-4e2b-9fe1-bcece3301649"
+
+	tests := map[string]struct {
+		state         map[string]cty.Value
+		schemaVersion int
+		setup         func(r *require.Assertions, mockClient *mock_sdk.MockClientInterface)
+		expDiag       diag.Diagnostics
+	}{
+		"should create scaling policy": {
+			schemaVersion: 0,
+			state: map[string]cty.Value{
+				"cluster_id": cty.StringVal(clusterId),
+				"name":       cty.StringVal(name),
+				"apply_type": cty.StringVal("IMMEDIATE"),
+			},
+			setup: func(r *require.Assertions, mockClient *mock_sdk.MockClientInterface) {
+				applyType := sdk.WorkloadoptimizationV1ApplyType("IMMEDIATE")
+				policy := &sdk.WorkloadoptimizationV1WorkloadScalingPolicy{
+					OrganizationId: organizationId,
+					ClusterId:      clusterId,
+					Id:             policyId,
+					Name:           name,
+					ApplyType:      applyType,
+				}
+
+				mockClient.EXPECT().
+					WorkloadOptimizationAPICreateWorkloadScalingPolicy(gomock.Any(), clusterId, gomock.Any()).
+					DoAndReturn(func(_ context.Context, cID string, req sdk.WorkloadOptimizationAPICreateWorkloadScalingPolicyJSONRequestBody) (*http.Response, error) {
+						r.Equal(clusterId, cID)
+						return toResponse(r, policy, http.StatusOK)
+					})
+				mockClient.EXPECT().
+					WorkloadOptimizationAPIGetWorkloadScalingPolicy(gomock.Any(), clusterId, policyId).
+					DoAndReturn(func(_ context.Context, cID string, pID string) (*http.Response, error) {
+						r.Equal(clusterId, cID)
+						r.Equal(policyId, pID)
+						return toResponse(r, policy, http.StatusOK)
+					})
+			},
+		},
+		"should create scaling policy with retries": {
+			schemaVersion: 0,
+			state: map[string]cty.Value{
+				"cluster_id": cty.StringVal(clusterId),
+				"name":       cty.StringVal(name),
+				"apply_type": cty.StringVal("IMMEDIATE"),
+			},
+			setup: func(r *require.Assertions, mockClient *mock_sdk.MockClientInterface) {
+				applyType := sdk.WorkloadoptimizationV1ApplyType("IMMEDIATE")
+				policy := &sdk.WorkloadoptimizationV1WorkloadScalingPolicy{
+					OrganizationId: organizationId,
+					ClusterId:      clusterId,
+					Id:             policyId,
+					Name:           name,
+					ApplyType:      applyType,
+				}
+
+				cnt := 0
+				mockClient.EXPECT().
+					WorkloadOptimizationAPICreateWorkloadScalingPolicy(gomock.Any(), clusterId, gomock.Any()).
+					DoAndReturn(func(_ context.Context, cID string, req sdk.WorkloadOptimizationAPICreateWorkloadScalingPolicyJSONRequestBody) (*http.Response, error) {
+						r.Equal(clusterId, cID)
+						cnt++
+						if cnt < 2 {
+							return toResponse(r, nil, http.StatusServiceUnavailable)
+						}
+						return toResponse(r, policy, http.StatusOK)
+					}).Times(2)
+				mockClient.EXPECT().
+					WorkloadOptimizationAPIGetWorkloadScalingPolicy(gomock.Any(), clusterId, policyId).
+					DoAndReturn(func(_ context.Context, cID string, pID string) (*http.Response, error) {
+						r.Equal(clusterId, cID)
+						r.Equal(policyId, pID)
+						return toResponse(r, policy, http.StatusOK)
+					})
+			},
+		},
+		"should not retry 400 status code": {
+			schemaVersion: 0,
+			state: map[string]cty.Value{
+				"cluster_id": cty.StringVal(clusterId),
+				"name":       cty.StringVal(name),
+				"apply_type": cty.StringVal("IMMEDIATE"),
+			},
+			setup: func(r *require.Assertions, mockClient *mock_sdk.MockClientInterface) {
+				mockClient.EXPECT().
+					WorkloadOptimizationAPICreateWorkloadScalingPolicy(gomock.Any(), clusterId, gomock.Any()).
+					DoAndReturn(func(_ context.Context, cID string, req sdk.WorkloadOptimizationAPICreateWorkloadScalingPolicyJSONRequestBody) (*http.Response, error) {
+						r.Equal(clusterId, cID)
+						return toResponse(r, nil, http.StatusBadRequest)
+					})
+			},
+			expDiag: diag.Diagnostics{
+				diag.Diagnostic{
+					Summary: "expected status code 200, received: status=400 body=null\n",
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			r := require.New(t)
+			mockClient := mock_sdk.NewMockClientInterface(gomock.NewController(t))
+
+			provider := &ProviderConfig{
+				api: &sdk.ClientWithResponses{
+					ClientInterface: mockClient,
+				},
+			}
+
+			scalingPolicyResource := resourceWorkloadScalingPolicy()
+			stateValue := cty.ObjectVal(tt.state)
+
+			state := sdkterraform.NewInstanceStateShimmedFromValue(stateValue, tt.schemaVersion)
+			data := scalingPolicyResource.Data(state)
+
+			tt.setup(r, mockClient)
+
+			result := scalingPolicyResource.CreateContext(t.Context(), data, provider)
+
+			if tt.expDiag != nil {
+				r.Equal(tt.expDiag, result)
+			} else {
+				r.Nil(result)
+				r.False(result.HasError())
+				r.Equal(policyId, data.Id())
+			}
+		})
+	}
+}
+
+func toJSON(r *require.Assertions, v any) *bytes.Buffer {
+	body := bytes.NewBuffer([]byte(""))
+	err := json.NewEncoder(body).Encode(v)
+	r.NoError(err)
+	return body
+}
+
+func toResponse(r *require.Assertions, v any, statusCode int) (*http.Response, error) {
+	return &http.Response{StatusCode: statusCode, Body: io.NopCloser(toJSON(r, v)), Header: map[string][]string{"Content-Type": {"json"}}}, nil
+}
+
+func Test_toWorkloadScalingPoliciesMap(t *testing.T) {
+	tests := map[string]struct {
+		previousCfg map[string]any
+		policies    sdk.WorkloadoptimizationV1ResourcePolicies
+		expected    []map[string]any
+	}{
+		"should map limit strategy with only_if_original_exist true": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.QUANTILE,
+				Args:     []string{"0.9"},
+				Overhead: 0.1,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+					Multiplier:          lo.ToPtr(2.0),
+					OnlyIfOriginalExist: lo.ToPtr(true),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.QUANTILE,
+					"args":     []string{"0.9"},
+					"overhead": 0.1,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+							FieldLimitStrategyMultiplier:          2.0,
+							FieldLimitStrategyOnlyIfOriginalExist: true,
+						},
+					},
+				},
+			},
+		},
+		"should map limit strategy with only_if_original_exist false": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.MAX,
+				Overhead: 0.15,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeNOLIMIT,
+					OnlyIfOriginalExist: lo.ToPtr(false),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.MAX,
+					"args":     []string(nil),
+					"overhead": 0.15,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeNOLIMIT,
+							FieldLimitStrategyOnlyIfOriginalExist: false,
+						},
+					},
+				},
+			},
+		},
+		"should map limit strategy with only_if_original_lower true": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.QUANTILE,
+				Args:     []string{"0.95"},
+				Overhead: 0.2,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeKEEPLIMITS,
+					OnlyIfOriginalLower: lo.ToPtr(true),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.QUANTILE,
+					"args":     []string{"0.95"},
+					"overhead": 0.2,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeKEEPLIMITS,
+							FieldLimitStrategyOnlyIfOriginalLower: true,
+						},
+					},
+				},
+			},
+		},
+		"should map limit strategy with only_if_original_lower false": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.QUANTILE,
+				Args:     []string{"0.5"},
+				Overhead: 0.05,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+					Multiplier:          lo.ToPtr(1.5),
+					OnlyIfOriginalLower: lo.ToPtr(false),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.QUANTILE,
+					"args":     []string{"0.5"},
+					"overhead": 0.05,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+							FieldLimitStrategyMultiplier:          1.5,
+							FieldLimitStrategyOnlyIfOriginalLower: false,
+						},
+					},
+				},
+			},
+		},
+		"should map limit strategy with both only_if_original_exist and only_if_original_lower": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.MAX,
+				Overhead: 0.3,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+					Multiplier:          lo.ToPtr(2.5),
+					OnlyIfOriginalExist: lo.ToPtr(true),
+					OnlyIfOriginalLower: lo.ToPtr(true),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.MAX,
+					"args":     []string(nil),
+					"overhead": 0.3,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:                sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+							FieldLimitStrategyMultiplier:          2.5,
+							FieldLimitStrategyOnlyIfOriginalExist: true,
+							FieldLimitStrategyOnlyIfOriginalLower: true,
+						},
+					},
+				},
+			},
+		},
+		"should map limit strategy without only_if flags": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.QUANTILE,
+				Args:     []string{"0.8"},
+				Overhead: 0.12,
+				Limit: &sdk.WorkloadoptimizationV1ResourceLimitStrategy{
+					Type:       sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+					Multiplier: lo.ToPtr(1.8),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.QUANTILE,
+					"args":     []string{"0.8"},
+					"overhead": 0.12,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+					"limit": []map[string]any{
+						{
+							FieldLimitStrategyType:       sdk.WorkloadoptimizationV1ResourceLimitStrategyTypeMULTIPLIER,
+							FieldLimitStrategyMultiplier: 1.8,
+						},
+					},
+				},
+			},
+		},
+		"should not include limit when nil": {
+			previousCfg: map[string]any{},
+			policies: sdk.WorkloadoptimizationV1ResourcePolicies{
+				Function: sdk.MAX,
+				Overhead: 0.1,
+				Limit:    nil,
+			},
+			expected: []map[string]any{
+				{
+					"function": sdk.MAX,
+					"args":     []string(nil),
+					"overhead": 0.1,
+					"min":      (*float64)(nil),
+					"max":      (*float64)(nil),
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			r := require.New(t)
+			result := toWorkloadScalingPoliciesMap(tt.previousCfg, tt.policies)
+			r.Equal(tt.expected, result)
 		})
 	}
 }

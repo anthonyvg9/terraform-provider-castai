@@ -9,11 +9,19 @@ CAST AI modules are places in one umbrella module that can be reused for differe
 Example configuration should be analysed in the following order:
 1. Create VPC - `vpc.tf`
 2. Create EKS cluster - `eks.tf`
-3. Create IAM and other CAST AI related resources to connect EKS cluster to CAST AI, configure Autoscaler and Node Configurations  - `castai.tf`
+3. Create IAM and other CAST AI related resources to connect EKS cluster to CAST AI, configure Autoscaler and Node Configurations  - `castai.tf` and `modules/castai`.
+
+CLM is enabled by having:
+1. `clm_enabled = true` in `modules/castai/main.tf` in the CAST AI node template.
+2. `container_runtime = "containerd"` and `eks_image_family  = "al2023"` in the CAST AI node configuration.
+3. `install_live = true` (`install_live = var.install_helm_live`, default value is `true`) in the CAST AI module configuration (`module "castai-eks-cluster"`).
+All are in the `modules/castai/main.tf` file.
+
+All other EKS/CAST AI resources mostly manage the EKS cluster and its connection to CAST AI, not specifically the CLM feature.
 
 # Usage
-1. Rename `tf.vars.example` to `tf.vars`
-2. Update `tf.vars` file with your cluster name, cluster region and CAST AI API token.
+1. Copy `terraform.tfvars.example` to `terraform.tfvars`
+2. Update `terraform.tfvars` file with your cluster name, cluster region and CAST AI API token.
 
 | Variable | Description |
 | --- | --- |
@@ -27,11 +35,11 @@ terraform init
 ```
 4. Run Terraform apply:
 ```
-terraform apply -var-file=tf.vars
+terraform apply
 ```
 5. To destroy resources created by this example:
 ```
-terraform destroy -var-file=tf.vars
+terraform destroy
 ```
 
 > **Note**

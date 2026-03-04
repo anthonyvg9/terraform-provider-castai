@@ -47,6 +47,7 @@ const (
 	FieldNodeConfigurationAKSNetworkSecurityGroup      = "network_security_group"
 	FieldNodeConfigurationAKSApplicationSecurityGroups = "application_security_groups"
 	FieldNodeConfigurationAKSPublicIP                  = "public_ip"
+	FieldNodeConfigurationAKSPodSubnetID               = "pod_subnet_id"
 )
 
 const (
@@ -62,8 +63,11 @@ const (
 	aksImageFamilyWindows2022             = "windows2022"
 	aksEphemeralDiskPlacementCacheDisk    = "cacheDisk"
 	aksEphemeralDiskPlacementResourceDisk = "resourceDisk"
-	aksDiskCacheReadOnly                  = "ReadOnly"
-	aksDiskCacheReadWrite                 = "ReadWrite"
+	aksEphemeralDiskPlacementNVME         = "nvmeDisk"
+)
+
+const (
+	nodeConfigurationGKEMaxPodsPerNodeDefault = 110
 )
 
 func resourceNodeConfiguration() *schema.Resource {
@@ -202,7 +206,7 @@ func resourceNodeConfiguration() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Description:      "IP address to use for DNS queries within the cluster",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
 						},
 						"instance_profile_arn": {
 							Type:             schema.TypeString,
@@ -262,15 +266,21 @@ func resourceNodeConfiguration() *schema.Resource {
 							Type:             schema.TypeInt,
 							Optional:         true,
 							Default:          nil,
-							Description:      "Number of IPs per prefix to be used for calculating max pods.",
+							Description:      "Number of IPs per prefix to be used for calculating max pods. For IPv4 it should be 16. More info: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-prefix-eni.html#ec2-prefix-basics",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 256)),
 							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 								log.Printf("[DEBUG] changing 'ips_per_prefix' attribute for eks: old=%s, new=%s", oldValue, newValue)
-								if oldValue == "1" && newValue == "0" {
+								if (oldValue == "1" || oldValue == "16") && newValue == "0" {
 									return true
 								}
 								return oldValue == newValue
 							},
+						},
+						"threads_per_cpu": {
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Description:      "Number of threads per core.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 256)),
 						},
 						FieldNodeConfigurationEKSImageFamily: {
 							Type:     schema.TypeString,
@@ -352,21 +362,21 @@ func resourceNodeConfiguration() *schema.Resource {
 									"placement": {
 										Type:                  schema.TypeString,
 										Required:              true,
-										Description:           "Placement of the ephemeral OS disk. One of: cacheDisk, resourceDisk",
-										ValidateDiagFunc:      validation.ToDiagFunc(validation.StringInSlice([]string{aksEphemeralDiskPlacementCacheDisk, aksEphemeralDiskPlacementResourceDisk}, true)),
+										Description:           "Placement of the ephemeral OS disk. One of: cacheDisk, resourceDisk, nvmeDisk",
+										ValidateDiagFunc:      validation.ToDiagFunc(validation.StringInSlice([]string{aksEphemeralDiskPlacementCacheDisk, aksEphemeralDiskPlacementResourceDisk, aksEphemeralDiskPlacementNVME}, true)),
 										DiffSuppressOnRefresh: true,
 										DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 											return strings.EqualFold(oldValue, newValue)
 										},
 									},
 									"cache": {
-										Type:                  schema.TypeString,
-										Optional:              true,
-										Description:           "Cache type for the ephemeral OS disk. One of: ReadOnly, ReadWrite",
-										ValidateDiagFunc:      validation.ToDiagFunc(validation.StringInSlice([]string{aksDiskCacheReadOnly, aksDiskCacheReadWrite}, true)),
-										DiffSuppressOnRefresh: true,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Deprecated:  "This field has no effect and will be removed in a future major version of the provider. Remove it from your configuration.",
+										Description: "Deprecated: this field has no effect. Ephemeral OS disks always use ReadOnly cache strategy",
+										// Prevent state drift for customers that put the value in their confguration. Since it has no effect, no point in raising diffs.
 										DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-											return strings.EqualFold(oldValue, newValue)
+											return true
 										},
 									},
 								},
@@ -475,6 +485,11 @@ func resourceNodeConfiguration() *schema.Resource {
 								},
 							},
 						},
+						FieldNodeConfigurationAKSPodSubnetID: {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "ID of pod subnet to be used for provisioned nodes.",
+						},
 					},
 				},
 			},
@@ -496,15 +511,29 @@ func resourceNodeConfiguration() *schema.Resource {
 			FieldNodeConfigurationGKE: {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"max_pods_per_node_formula": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Description: `This is an advanced configuration field. In general, we recommend using max_pods_per_node instead.
+This field accepts a formula to calculate the maximum number of pods that can run on a node. This will affect the pod CIDR range that the node reserves. The following variables are available for use in the formula and will be bound to numeric values before evaluation:
+
+    * NUM_CPU - Number of CPUs available on the node
+    * NUM_RAM_GB - Amount of RAM in gigabytes available on the node.
+
+If you want the smallest value between 5 times the CPUs, 5 times the RAM, or a cap of 110, your formula would be math.least(110, 5 \* NUM_CPU, 5 \* NUM_RAM_GB).
+For a node with 8 CPUs and 16 GB RAM, this calculates to 40 (5×8), 80 (5×16), and 110, then picks the smallest value: 40 pods.`,
+							ConflictsWith: []string{FieldNodeConfigurationGKE + ".0.max_pods_per_node"},
+						},
 						"max_pods_per_node": {
 							Type:             schema.TypeInt,
-							Default:          110,
 							Optional:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(10, 256)),
 							Description:      "Maximum number of pods that can be run on a node, which affects how many IP addresses you will need for each node. Defaults to 110",
+							ConflictsWith:    []string{FieldNodeConfigurationGKE + ".0.max_pods_per_node_formula"},
 						},
 						"network_tags": {
 							Type: schema.TypeList,
@@ -552,6 +581,13 @@ func resourceNodeConfiguration() *schema.Resource {
 								},
 							},
 						},
+						"on_host_maintenance": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          nil,
+							Description:      "Maintenance behavior of the instances. If not set, the default value for spot nodes is terminate, and for non-spot nodes, it is migrate.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"migrate", "terminate"}, true)),
+						},
 						FieldNodeConfigurationLoadbalancers: {
 							Type:        schema.TypeList,
 							Optional:    true,
@@ -598,10 +634,37 @@ func resourceNodeConfiguration() *schema.Resource {
 				},
 			},
 		},
-		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
-			return nil
-		},
+		CustomizeDiff: customizeGKEMaxPodsField,
 	}
+}
+
+func customizeGKEMaxPodsField(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	if v, ok := d.GetOk(FieldNodeConfigurationGKE); ok {
+		gkeList := v.([]interface{})
+		gke := gkeList[0].(map[string]interface{})
+
+		static, formula := gke["max_pods_per_node"], gke["max_pods_per_node_formula"]
+		staticNotSet := static == nil || static.(int) == 0
+		formulaNotSet := formula == nil || formula.(string) == ""
+		if staticNotSet && formulaNotSet {
+			gke["max_pods_per_node"] = nodeConfigurationGKEMaxPodsPerNodeDefault
+			gkeList = []interface{}{gke}
+			if err := d.SetNew(FieldNodeConfigurationGKE, gkeList); err != nil {
+				return err
+			}
+			return nil
+		}
+		if !formulaNotSet {
+			gke["max_pods_per_node"] = nil
+			gkeList = []interface{}{gke}
+			if err := d.SetNew(FieldNodeConfigurationGKE, gkeList); err != nil {
+				return err
+			}
+			return nil
+
+		}
+	}
+	return nil
 }
 
 func resourceNodeConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -667,7 +730,7 @@ func resourceNodeConfigurationCreate(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(checkErr)
 	}
 
-	d.SetId(*resp.JSON200.Id)
+	d.SetId(resp.JSON200.Id)
 
 	return resourceNodeConfigurationRead(ctx, d, meta)
 }
@@ -860,7 +923,7 @@ func resourceNodeConfigurationDelete(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
-	if *resp.JSON200.Default {
+	if resp.JSON200.Default {
 		log.Printf("[WARN] Default node configuration (%s) can't be deleted, removing from state", d.Id())
 		return nil
 	}
@@ -920,6 +983,10 @@ func toEKSConfig(obj map[string]interface{}) *sdk.NodeconfigV1EKSConfig {
 
 	if v, ok := obj["ips_per_prefix"].(int); ok && v != 0 {
 		out.IpsPerPrefix = toPtr(int32(v))
+	}
+
+	if v, ok := obj["threads_per_cpu"].(int); ok && v != 0 {
+		out.ThreadsPerCpu = toPtr(int32(v))
 	}
 
 	if v, ok := obj[FieldNodeConfigurationEKSTargetGroup].([]any); ok && len(v) > 0 {
@@ -1009,6 +1076,10 @@ func flattenEKSConfig(config *sdk.NodeconfigV1EKSConfig) []map[string]interface{
 
 	if v := config.IpsPerPrefix; v != nil {
 		m["ips_per_prefix"] = *config.IpsPerPrefix
+	}
+
+	if v := config.ThreadsPerCpu; v != nil {
+		m["threads_per_cpu"] = *config.ThreadsPerCpu
 	}
 
 	if v := config.TargetGroups; v != nil && len(*v) > 0 {
@@ -1114,6 +1185,10 @@ func toAKSSConfig(obj map[string]interface{}) *sdk.NodeconfigV1AKSConfig {
 		out.ApplicationSecurityGroupIds = toPtr(toStringList(v))
 	}
 
+	if v, ok := obj[FieldNodeConfigurationAKSPodSubnetID].(string); ok && v != "" {
+		out.PodSubnetId = toPtr(v)
+	}
+
 	return out
 }
 
@@ -1145,7 +1220,6 @@ func toAKSNodePublicIP(obj any) *sdk.NodeconfigV1AKSConfigPublicIP {
 	}
 
 	return publicIP
-
 }
 
 func toAKSEphemeralOSDisk(obj any) *sdk.NodeconfigV1AKSConfigOsDiskEphemeral {
@@ -1161,15 +1235,8 @@ func toAKSEphemeralOSDisk(obj any) *sdk.NodeconfigV1AKSConfigOsDiskEphemeral {
 			osDisk.Placement = lo.ToPtr(sdk.NodeconfigV1AKSConfigOsDiskEphemeralPlacementPLACEMENTRESOURCEDISK)
 		case strings.ToLower(aksEphemeralDiskPlacementCacheDisk):
 			osDisk.Placement = lo.ToPtr(sdk.NodeconfigV1AKSConfigOsDiskEphemeralPlacementPLACEMENTCACHEDISK)
-		}
-	}
-
-	if v, ok := obj.(map[string]any)["cache"].(string); ok && v != "" {
-		switch strings.ToLower(v) {
-		case strings.ToLower(aksDiskCacheReadWrite):
-			osDisk.CacheType = lo.ToPtr(sdk.NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADWRITE)
-		case strings.ToLower(aksDiskCacheReadOnly):
-			osDisk.CacheType = lo.ToPtr(sdk.NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADONLY)
+		case strings.ToLower(aksEphemeralDiskPlacementNVME):
+			osDisk.Placement = lo.ToPtr(sdk.NodeconfigV1AKSConfigOsDiskEphemeralPlacementPLACEMENTNVMEDISK)
 		}
 	}
 
@@ -1312,6 +1379,10 @@ func flattenAKSConfig(config *sdk.NodeconfigV1AKSConfig) []map[string]interface{
 		m[FieldNodeConfigurationAKSApplicationSecurityGroups] = *config.ApplicationSecurityGroupIds
 	}
 
+	if v := config.PodSubnetId; v != nil {
+		m[FieldNodeConfigurationAKSPodSubnetID] = *v
+	}
+
 	return []map[string]interface{}{m}
 }
 
@@ -1338,7 +1409,6 @@ func fromAKSNodePublicIP(sdkPublicIp *sdk.NodeconfigV1AKSConfigPublicIP) []map[s
 	}
 
 	return []map[string]any{m}
-
 }
 
 func fromAKSEphemeralOSDisk(sdkEph *sdk.NodeconfigV1AKSConfigOsDiskEphemeral) []map[string]interface{} {
@@ -1353,15 +1423,8 @@ func fromAKSEphemeralOSDisk(sdkEph *sdk.NodeconfigV1AKSConfigOsDiskEphemeral) []
 			m["placement"] = aksEphemeralDiskPlacementResourceDisk
 		case sdk.NodeconfigV1AKSConfigOsDiskEphemeralPlacementPLACEMENTCACHEDISK:
 			m["placement"] = aksEphemeralDiskPlacementCacheDisk
-		}
-	}
-
-	if sdkEph.CacheType != nil {
-		switch *sdkEph.CacheType {
-		case sdk.NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADWRITE:
-			m["cache"] = aksDiskCacheReadWrite
-		case sdk.NodeconfigV1AKSConfigOsDiskEphemeralCacheTypeREADONLY:
-			m["cache"] = aksDiskCacheReadOnly
+		case sdk.NodeconfigV1AKSConfigOsDiskEphemeralPlacementPLACEMENTNVMEDISK:
+			m["placement"] = aksEphemeralDiskPlacementNVME
 		}
 	}
 
@@ -1458,7 +1521,10 @@ func toGKEConfig(obj map[string]interface{}) *sdk.NodeconfigV1GKEConfig {
 	}
 
 	out := &sdk.NodeconfigV1GKEConfig{}
-	if v, ok := obj["max_pods_per_node"].(int); ok {
+	if v, ok := obj["max_pods_per_node_formula"].(string); ok && len(v) > 0 {
+		out.MaxPodsPerNodeFormula = toPtr(v)
+	}
+	if v, ok := obj["max_pods_per_node"].(int); ok && v != 0 {
 		out.MaxPodsPerNode = toPtr(int32(v))
 	}
 	if v, ok := obj["network_tags"].([]interface{}); ok {
@@ -1480,6 +1546,10 @@ func toGKEConfig(obj map[string]interface{}) *sdk.NodeconfigV1GKEConfig {
 		if rangeName, ok := secondary["range_name"].(string); ok {
 			out.SecondaryIpRange = &sdk.NodeconfigV1SecondaryIPRange{RangeName: &rangeName}
 		}
+	}
+
+	if v, ok := obj["on_host_maintenance"].(string); ok && v != "" {
+		out.OnHostMaintenance = toPtr(sdk.NodeconfigV1GKEConfigOnHostMaintenance(v))
 	}
 
 	if v, ok := obj[FieldNodeConfigurationLoadbalancers].([]interface{}); ok && len(v) > 0 {
@@ -1553,7 +1623,6 @@ func toGkeUnmanagedInstanceGroups(obj []interface{}) *[]sdk.NodeconfigV1GKEConfi
 	}
 
 	return &out
-
 }
 
 func flattenGKEConfig(config *sdk.NodeconfigV1GKEConfig) []map[string]interface{} {
@@ -1561,6 +1630,9 @@ func flattenGKEConfig(config *sdk.NodeconfigV1GKEConfig) []map[string]interface{
 		return nil
 	}
 	m := map[string]interface{}{}
+	if v := config.MaxPodsPerNodeFormula; v != nil {
+		m["max_pods_per_node_formula"] = *config.MaxPodsPerNodeFormula
+	}
 	if v := config.MaxPodsPerNode; v != nil {
 		m["max_pods_per_node"] = *config.MaxPodsPerNode
 	}
@@ -1584,6 +1656,9 @@ func flattenGKEConfig(config *sdk.NodeconfigV1GKEConfig) []map[string]interface{
 		}
 	}
 
+	if v := config.OnHostMaintenance; v != nil {
+		m["on_host_maintenance"] = *v
+	}
 	if v := config.LoadBalancers; v != nil && len(*v) > 0 {
 		m[FieldNodeConfigurationLoadbalancers] = fromGkeLoadBalancers(*v)
 	}
@@ -1648,8 +1723,8 @@ func nodeConfigStateImporter(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	for _, cfg := range *resp.JSON200.Items {
-		if lo.FromPtr(cfg.Name) == id {
-			d.SetId(toString(cfg.Id))
+		if cfg.Name == id {
+			d.SetId(cfg.Id)
 			return []*schema.ResourceData{d}, nil
 		}
 	}

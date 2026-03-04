@@ -61,7 +61,7 @@ func resourceEKSCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Description: "AWS IAM role ARN that will be assumed by CAST AI user. " +
-					"This role should allow `sts:AssumeRole` action for CAST AI user that can be retrieved using `castai_eks_user_arn` data source",
+					"This role should allow `sts:AssumeRole` action for CAST AI user.",
 			},
 			FieldClusterToken: {
 				Type:        schema.TypeString,
@@ -78,6 +78,11 @@ func resourceEKSCluster() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Should CAST AI remove nodes managed by CAST AI on disconnect",
+			},
+			FieldClusterOrganizationId: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "CAST AI organization ID",
 			},
 		},
 	}
@@ -168,6 +173,9 @@ func resourceCastaiEKSClusterRead(ctx context.Context, data *schema.ResourceData
 
 	if err := data.Set(FieldClusterCredentialsId, *resp.JSON200.CredentialsId); err != nil {
 		return diag.FromErr(fmt.Errorf("setting credentials id: %w", err))
+	}
+	if err := data.Set(FieldClusterOrganizationId, toString(resp.JSON200.OrganizationId)); err != nil {
+		return diag.FromErr(fmt.Errorf("setting organization id: %w", err))
 	}
 
 	return nil

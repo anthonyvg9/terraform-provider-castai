@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.11"
+
   required_providers {
     castai = {
       source = "castai/castai"
@@ -7,11 +9,12 @@ terraform {
       source = "hashicorp/kubernetes"
     }
     helm = {
-      source = "hashicorp/helm"
+      source  = "hashicorp/helm"
+      version = "~> 3.0"
     }
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
+      version = ">= 6.23.0"
     }
   }
-  required_version = ">= 0.13"
 }

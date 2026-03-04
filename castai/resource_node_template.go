@@ -36,6 +36,7 @@ const (
 	FieldNodeTemplateExclude                                  = "exclude"
 	FieldNodeTemplateExcludeNames                             = "exclude_names"
 	FieldNodeTemplateFallbackRestoreRateSeconds               = "fallback_restore_rate_seconds"
+	FieldNodeTemplateFractionalGPUs                           = "fractional_gpus"
 	FieldNodeTemplateGpu                                      = "gpu"
 	FieldNodeTemplateInclude                                  = "include"
 	FieldNodeTemplateIncludeNames                             = "include_names"
@@ -85,6 +86,17 @@ const (
 	FieldNodeTemplateSharingConfiguration                     = "sharing_configuration"
 	FieldNodeTemplateSharedClientsPerGpu                      = "shared_clients_per_gpu"
 	FieldNodeTemplateSharedGpuName                            = "gpu_name"
+	FieldNodeTemplateSharingStrategy                          = "sharing_strategy"
+	FieldNodeTemplateClmEnabled                               = "clm_enabled"
+	FieldNodeTemplateEdgeLocationIDs                          = "edge_location_ids"
+	FieldNodeTemplatePriceAdjustmentConfiguration             = "price_adjustment_configuration"
+	FieldNodeTemplateInstanceTypeAdjustments                  = "instance_type_adjustments"
+	FieldNodeTemplateUserManagedGPUDrivers                    = "user_managed_gpu_drivers"
+	FieldNodeTemplateAWSConstraints                           = "aws"
+	FieldNodeTemplateCapacityReservations                     = "capacity_reservations"
+	FieldNodeTemplateCapacityReservationId                    = "id"
+	FieldNodeTemplateCapacityResourceGroupArn                 = "capacity_resource_group_arn"
+	FieldNodeTemplateCapacityReservationType                  = "type"
 )
 
 const (
@@ -114,9 +126,15 @@ const (
 	Unspecified = "unspecified"
 )
 
+const (
+	CapacityReservationTypeOnDemand      = "ON_DEMAND_CAPACITY_RESERVATION"
+	CapacityReservationTypeCapacityBlock = "CAPACITY_BLOCK"
+)
+
 type nodeSelectorOperatorsSlice []string
 
-var nodeSelectorOperators = nodeSelectorOperatorsSlice{NodeSelectorOperationIn,
+var nodeSelectorOperators = nodeSelectorOperatorsSlice{
+	NodeSelectorOperationIn,
 	NodeSelectorOperationNotIn,
 	NodeSelectorOperationExists,
 	NodeSelectorOperationDoesNot,
@@ -138,7 +156,13 @@ func resourceNodeTemplate() *schema.Resource {
 	supportedArchitectures := []string{ArchAMD64, ArchARM64}
 	supportedOs := []string{OsLinux, OsWindows}
 	supportedSelectorOperations := nodeSelectorOperators
-	supportedCPUManufacturers := []string{string(sdk.AMD), string(sdk.AMPERE), string(sdk.APPLE), string(sdk.AWS), string(sdk.INTEL)}
+	supportedCPUManufacturers := []string{
+		string(sdk.NodetemplatesV1TemplateConstraintsCPUManufacturerAMD),
+		string(sdk.NodetemplatesV1TemplateConstraintsCPUManufacturerAMPERE),
+		string(sdk.NodetemplatesV1TemplateConstraintsCPUManufacturerAPPLE),
+		string(sdk.NodetemplatesV1TemplateConstraintsCPUManufacturerAWS),
+		string(sdk.NodetemplatesV1TemplateConstraintsCPUManufacturerINTEL),
+	}
 
 	return &schema.Resource{
 		CreateContext: resourceNodeTemplateCreate,
@@ -350,7 +374,7 @@ func resourceNodeTemplate() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
-										Description: "Instance families to exclude when filtering (includes all other families).",
+										Description: "Instance families to include when filtering (excludes all other families).",
 									},
 									FieldNodeTemplateExclude: {
 										Type:     schema.TypeList,
@@ -358,7 +382,7 @@ func resourceNodeTemplate() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
-										Description: "Instance families to include when filtering (excludes all other families).",
+										Description: "Instance families to exclude when filtering (includes all other families).",
 									},
 								},
 							},
@@ -402,6 +426,13 @@ func resourceNodeTemplate() *schema.Resource {
 										Type:        schema.TypeInt,
 										Optional:    true,
 										Description: "Max GPU count for the instance type to have.",
+									},
+									FieldNodeTemplateFractionalGPUs: {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "",
+										Description:      "Will include fractional GPU instances when enabled otherwise they will be excluded. Supported values: `enabled`, `disabled` or ``.",
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"", Enabled, Disabled}, false)),
 									},
 								},
 							},
@@ -588,6 +619,41 @@ func resourceNodeTemplate() *schema.Resource {
 								},
 							},
 						},
+						FieldNodeTemplateAWSConstraints: {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									FieldNodeTemplateCapacityReservations: {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												FieldNodeTemplateCapacityReservationId: {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "AWS capacity reservation ID.",
+												},
+												FieldNodeTemplateCapacityResourceGroupArn: {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Capacity resource group ARN for UltraServer capacity blocks.",
+												},
+												FieldNodeTemplateCapacityReservationType: {
+													Type:             schema.TypeString,
+													Optional:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{CapacityReservationTypeOnDemand, CapacityReservationTypeCapacityBlock}, false)),
+													Description:      fmt.Sprintf("Type of capacity reservation. Allowed values: %s, %s.", CapacityReservationTypeOnDemand, CapacityReservationTypeCapacityBlock),
+												},
+											},
+										},
+										Description: "Capacity reservations that this template can use for provisioning.",
+									},
+								},
+							},
+							Description: "AWS-specific constraints for the node template.",
+						},
 					},
 				},
 			},
@@ -659,11 +725,44 @@ func resourceNodeTemplate() *schema.Resource {
 				DiffSuppressFunc: compareLists,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						FieldNodeTemplateSharingStrategy: {
+							Type:             schema.TypeString,
+							Optional:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"time-slicing", "mps"}, false)),
+							Description:      "GPU sharing strategy. Supported values: `time-slicing`, `mps`.",
+							DiffSuppressFunc: func(k, oldVal, newVal string, d *schema.ResourceData) bool {
+								// Suppress diff when sharing_strategy is not configured but enable_time_sharing=true
+								// implies time-slicing, so the API returning "time-slicing" is not a real change.
+								//
+								//	The DiffSuppressFunc receives k — the full key path of the field that's diffing, which looks like:
+								//	gpu.0.sharing_strategy
+								//	We need to check the sibling field enable_time_sharing at the same path:
+								//	gpu.0.enable_time_sharing
+								//	So the code:
+								//	prefix := k[:len(k)-len(FieldNodeTemplateSharingStrategy)]
+								//	// k                    = "gpu.0.sharing_strategy"
+								//	// len("sharing_strategy") chars stripped from end
+								//	// prefix               = "gpu.0."
+								//
+								//Then:
+								//	d.GetOk(prefix + FieldNodeTemplateEnableTimeSharing)
+								//	// = d.GetOk("gpu.0." + "enable_time_sharing")
+								//	// = d.GetOk("gpu.0.enable_time_sharing")
+								if newVal == "" && oldVal == "time-slicing" {
+									prefix := k[:len(k)-len(FieldNodeTemplateSharingStrategy)]
+									if v, ok := d.GetOk(prefix + FieldNodeTemplateEnableTimeSharing); ok && v.(bool) {
+										return true
+									}
+								}
+								return false
+							},
+						},
 						FieldNodeTemplateEnableTimeSharing: {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     nil,
-							Description: "Enable/disable GPU time-sharing.",
+							Deprecated:  "Use sharing_strategy instead.",
+							Description: "Enable/disable GPU time-sharing. Deprecated: use sharing_strategy = \"time-slicing\" instead.",
 						},
 						FieldNodeTemplateDefaultSharedClientsPerGpu: {
 							Type:        schema.TypeInt,
@@ -690,6 +789,45 @@ func resourceNodeTemplate() *schema.Resource {
 									},
 								},
 							},
+						},
+						FieldNodeTemplateUserManagedGPUDrivers: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     nil,
+							Description: "Enable/disable user-managed GPU drivers (for GKE clusters only).",
+						},
+					},
+				},
+			},
+			FieldNodeTemplateClmEnabled: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Marks whether CLM should be enabled for nodes created from this template.",
+			},
+			FieldNodeTemplateEdgeLocationIDs: {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IsUUID),
+				},
+				Description: "List of edge location IDs to associate with this node template. Must be valid UUIDs referencing castai_edge_location resources.",
+			},
+			FieldNodeTemplatePriceAdjustmentConfiguration: {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Configuration for adjusting instance type prices during autoscaling. Adjustments only affect placement decisions, not cost reporting.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						FieldNodeTemplateInstanceTypeAdjustments: {
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+							Description: "Map of instance type names to price adjustment multipliers (as strings). Example: {\"r7a.xlarge\": \"1.0\", \"r7i.xlarge\": \"1.20\"}",
 						},
 					},
 				},
@@ -778,7 +916,38 @@ func resourceNodeTemplateRead(ctx context.Context, d *schema.ResourceData, meta 
 			return diag.FromErr(fmt.Errorf("setting gpu settings: %w", err))
 		}
 	}
+
+	if err := d.Set(FieldNodeTemplateClmEnabled, nodeTemplate.ClmEnabled); err != nil {
+		return diag.FromErr(fmt.Errorf("setting clm enabled: %w", err))
+	}
+
+	if nodeTemplate.EdgeLocationIds != nil {
+		if err := d.Set(FieldNodeTemplateEdgeLocationIDs, lo.FromPtr(nodeTemplate.EdgeLocationIds)); err != nil {
+			return diag.FromErr(fmt.Errorf("setting edge location ids: %w", err))
+		}
+	}
+
+	if nodeTemplate.PriceAdjustmentConfiguration != nil {
+		priceAdjustment := flattenPriceAdjustmentConfiguration(nodeTemplate.PriceAdjustmentConfiguration)
+		if err := d.Set(FieldNodeTemplatePriceAdjustmentConfiguration, priceAdjustment); err != nil {
+			return diag.FromErr(fmt.Errorf("setting price adjustment configuration: %w", err))
+		}
+	}
+
 	return nil
+}
+
+func flattenPriceAdjustmentConfiguration(pac *sdk.NodetemplatesV1PriceAdjustmentConfiguration) []map[string]any {
+	if pac == nil {
+		return nil
+	}
+
+	out := make(map[string]any)
+	if pac.InstanceTypeAdjustments != nil {
+		out[FieldNodeTemplateInstanceTypeAdjustments] = *pac.InstanceTypeAdjustments
+	}
+
+	return []map[string]any{out}
 }
 
 func flattenGpuSettings(g *sdk.NodetemplatesV1GPU) ([]map[string]any, error) {
@@ -787,6 +956,14 @@ func flattenGpuSettings(g *sdk.NodetemplatesV1GPU) ([]map[string]any, error) {
 	}
 
 	out := make(map[string]any)
+
+	if g.UserManagedGpuDrivers != nil {
+		out[FieldNodeTemplateUserManagedGPUDrivers] = g.UserManagedGpuDrivers
+	}
+
+	if g.SharingStrategy != nil {
+		out[FieldNodeTemplateSharingStrategy] = gpuSharingStrategyToTerraform(*g.SharingStrategy)
+	}
 
 	if g.EnableTimeSharing != nil {
 		out[FieldNodeTemplateEnableTimeSharing] = g.EnableTimeSharing
@@ -911,6 +1088,9 @@ func flattenConstraints(c *sdk.NodetemplatesV1TemplateConstraints) ([]map[string
 		out[FieldNodeTemplateArchitecturePriority] = lo.FromPtr(c.ArchitecturePriority)
 	}
 	out[FieldNodeTemplateResourceLimits] = flattenResourceLimits(c.ResourceLimits)
+	if c.Aws != nil {
+		out[FieldNodeTemplateAWSConstraints] = flattenAWSConstraints(c.Aws)
+	}
 	if c.BareMetal != nil {
 		if lo.FromPtr(c.BareMetal) {
 			out[FieldNodeTemplateBareMetal] = True
@@ -933,6 +1113,10 @@ func setStateConstraintValue(value *sdk.NodetemplatesV1TemplateConstraintsConstr
 			values[key] = Enabled
 		case sdk.DISABLED:
 			values[key] = Disabled
+		case sdk.NOTSET:
+			values[key] = ""
+		default:
+			values[key] = ""
 		}
 	}
 	return values
@@ -966,6 +1150,33 @@ func flattenResourceLimits(resourceLimits *sdk.NodetemplatesV1TemplateConstraint
 	return []map[string]any{out}
 }
 
+func flattenAWSConstraints(aws *sdk.NodetemplatesV1TemplateConstraintsAWSConstraints) []map[string]any {
+	if aws == nil {
+		return nil
+	}
+	out := map[string]any{}
+	if aws.CapacityReservations == nil {
+		return []map[string]any{out}
+	}
+
+	reservations := make([]map[string]any, 0, len(*aws.CapacityReservations))
+	for _, r := range *aws.CapacityReservations {
+		m := map[string]any{}
+		if r.Id != nil {
+			m[FieldNodeTemplateCapacityReservationId] = *r.Id
+		}
+		if r.CapacityResourceGroupArn != nil {
+			m[FieldNodeTemplateCapacityResourceGroupArn] = *r.CapacityResourceGroupArn
+		}
+		if r.Type != nil {
+			m[FieldNodeTemplateCapacityReservationType] = string(*r.Type)
+		}
+		reservations = append(reservations, m)
+	}
+	out[FieldNodeTemplateCapacityReservations] = reservations
+	return []map[string]any{out}
+}
+
 func flattenGpu(gpu *sdk.NodetemplatesV1TemplateConstraintsGPUConstraints) []map[string]any {
 	if gpu == nil {
 		return nil
@@ -986,6 +1197,8 @@ func flattenGpu(gpu *sdk.NodetemplatesV1TemplateConstraintsGPUConstraints) []map
 	if gpu.MaxCount != nil {
 		out[FieldNodeTemplateMaxCount] = gpu.MaxCount
 	}
+
+	setStateConstraintValue(gpu.FractionalGpus, FieldNodeTemplateFractionalGPUs, out)
 	return []map[string]any{out}
 }
 
@@ -1014,7 +1227,6 @@ func flattenNodeAffinity(affinities []sdk.NodetemplatesV1TemplateConstraintsDedi
 		result[FieldNodeTemplateAzName] = lo.FromPtr(item.AzName)
 
 		if item.Affinity != nil && len(*item.Affinity) > 0 {
-
 			result[FieldNodeTemplateAffinityName] = lo.Map(*item.Affinity, func(affinity sdk.K8sSelectorV1KubernetesNodeAffinity, index int) map[string]any {
 				affinityOperator, ok := nodeSelectorOperators.Get(affinity.Operator)
 				if !ok {
@@ -1076,9 +1288,14 @@ func updateNodeTemplate(ctx context.Context, d *schema.ResourceData, meta any, s
 		FieldNodeTemplateGpu,
 		FieldNodeTemplateDefaultSharedClientsPerGpu,
 		FieldNodeTemplateEnableTimeSharing,
+		FieldNodeTemplateSharingStrategy,
 		FieldNodeTemplateSharingConfiguration,
 		FieldNodeTemplateSharedGpuName,
 		FieldNodeTemplateSharedClientsPerGpu,
+		FieldNodeTemplateClmEnabled,
+		FieldNodeTemplateEdgeLocationIDs,
+		FieldNodeTemplatePriceAdjustmentConfiguration,
+		FieldNodeTemplateUserManagedGPUDrivers,
 	) {
 		log.Printf("[INFO] Nothing to update in node template")
 		return nil
@@ -1152,6 +1369,20 @@ func updateNodeTemplate(ctx context.Context, d *schema.ResourceData, meta any, s
 		req.Gpu = toTemplateGpu(v[0].(map[string]any))
 	}
 
+	if v, ok := d.GetOk(FieldNodeTemplateClmEnabled); ok {
+		req.ClmEnabled = lo.ToPtr(v.(bool))
+	}
+
+	if v, ok := d.Get(FieldNodeTemplateEdgeLocationIDs).([]any); ok && len(v) > 0 {
+		req.EdgeLocationIds = toPtr(toStringList(v))
+	}
+
+	if v, ok := d.Get(FieldNodeTemplatePriceAdjustmentConfiguration).([]any); ok && len(v) > 0 {
+		req.PriceAdjustmentConfiguration = toPriceAdjustmentConfiguration(v[0].(map[string]any))
+	} else if d.HasChange(FieldNodeTemplatePriceAdjustmentConfiguration) {
+		req.PriceAdjustmentConfiguration = &sdk.NodetemplatesV1PriceAdjustmentConfiguration{}
+	}
+
 	resp, err := client.NodeTemplatesAPIUpdateNodeTemplateWithResponse(ctx, clusterID, name, req)
 	if checkErr := sdk.CheckOKResponse(resp, err); checkErr != nil {
 		return diag.FromErr(checkErr)
@@ -1181,6 +1412,11 @@ func resourceNodeTemplateCreate(ctx context.Context, d *schema.ResourceData, met
 		IsDefault:       lo.ToPtr(isDefault),
 		ConfigurationId: lo.ToPtr(d.Get(FieldNodeTemplateConfigurationId).(string)),
 		ShouldTaint:     lo.ToPtr(d.Get(FieldNodeTemplateShouldTaint).(bool)),
+		ClmEnabled:      lo.ToPtr(d.Get(FieldNodeTemplateClmEnabled).(bool)),
+	}
+
+	if v, ok := d.Get(FieldNodeTemplateEdgeLocationIDs).([]any); ok && len(v) > 0 {
+		req.EdgeLocationIds = toPtr(toStringList(v))
 	}
 
 	//nolint:staticcheck // Currently no other way to reliably get the value and determine if it is set
@@ -1227,6 +1463,10 @@ func resourceNodeTemplateCreate(ctx context.Context, d *schema.ResourceData, met
 
 	if v, ok := d.Get(FieldNodeTemplateGpu).([]any); ok && len(v) > 0 {
 		req.Gpu = toTemplateGpu(v[0].(map[string]any))
+	}
+
+	if v, ok := d.Get(FieldNodeTemplatePriceAdjustmentConfiguration).([]any); ok && len(v) > 0 {
+		req.PriceAdjustmentConfiguration = toPriceAdjustmentConfiguration(v[0].(map[string]any))
 	}
 
 	resp, err := client.NodeTemplatesAPICreateNodeTemplateWithResponse(ctx, clusterID, req)
@@ -1290,7 +1530,7 @@ func getNodeTemplateByName(ctx context.Context, data *schema.ResourceData, meta 
 		return nil, fmt.Errorf("%w: %v", ErrFailedToFindTemplateWithName, nodeTemplateName)
 	}
 
-	return t.Template, nil
+	return &t.Template, nil
 }
 
 func nodeTemplateStateImporter(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -1546,6 +1786,11 @@ func toTemplateConstraints(obj map[string]any) *sdk.NodetemplatesV1TemplateConst
 			out.ResourceLimits = toTemplateConstraintsResourceLimits(val)
 		}
 	}
+	if v, ok := obj[FieldNodeTemplateAWSConstraints].([]any); ok && len(v) > 0 {
+		if val, ok := v[0].(map[string]any); ok {
+			out.Aws = toTemplateConstraintsAWSConstraints(val)
+		}
+	}
 
 	if v, ok := obj[FieldNodeTemplateBareMetal].(string); ok {
 		switch v {
@@ -1566,9 +1811,20 @@ func toTemplateGpu(obj map[string]any) *sdk.NodetemplatesV1GPU {
 		return nil
 	}
 
+	var userManagedGPUDrivers bool
+	if v, ok := obj[FieldNodeTemplateUserManagedGPUDrivers].(bool); ok {
+		userManagedGPUDrivers = v
+	}
+
 	var defaultSharedClientsPerGpu int32
 	if v, ok := obj[FieldNodeTemplateDefaultSharedClientsPerGpu].(int); ok {
 		defaultSharedClientsPerGpu = int32(v)
+	}
+
+	var sharingStrategy *sdk.NodetemplatesV1GPUSharingStrategy
+	if v, ok := obj[FieldNodeTemplateSharingStrategy].(string); ok && v != "" {
+		s := gpuSharingStrategyToAPI(v)
+		sharingStrategy = &s
 	}
 
 	var enableTimeSharing bool
@@ -1597,16 +1853,30 @@ func toTemplateGpu(obj map[string]any) *sdk.NodetemplatesV1GPU {
 	// terraform treats nil values as zero values
 	// this condition checks whether the whole gpu configuration is deleted
 	// and gpu configuration should be set to nil
-	if defaultSharedClientsPerGpu == 0 &&
-		!enableTimeSharing &&
-		len(sharingConfig) == 0 {
+	if defaultSharedClientsPerGpu == 0 && !enableTimeSharing && sharingStrategy == nil && len(sharingConfig) == 0 && !userManagedGPUDrivers {
 		return nil
 	}
-	return &sdk.NodetemplatesV1GPU{
-		DefaultSharedClientsPerGpu: &defaultSharedClientsPerGpu,
-		EnableTimeSharing:          &enableTimeSharing,
-		SharingConfiguration:       &sharingConfig,
+
+	result := &sdk.NodetemplatesV1GPU{
+		EnableTimeSharing:    &enableTimeSharing,
+		SharingConfiguration: &sharingConfig,
+		SharingStrategy:      sharingStrategy,
 	}
+
+	// Only set DefaultSharedClientsPerGpu if it's non-zero to avoid API validation errors
+	// as terraform treats nil values as zero values
+	// API requires it to be in range (0, 48] if present
+	if defaultSharedClientsPerGpu > 0 {
+		result.DefaultSharedClientsPerGpu = &defaultSharedClientsPerGpu
+	}
+
+	// Only set UserManagedGpuDrivers if explicitly true
+	//as this is optional and as terraform treats nil values as zero values
+	if userManagedGPUDrivers {
+		result.UserManagedGpuDrivers = &userManagedGPUDrivers
+	}
+
+	return result
 }
 
 func toTemplateConstraintsInstanceFamilies(o map[string]any) *sdk.NodetemplatesV1TemplateConstraintsInstanceFamilyConstraints {
@@ -1639,6 +1909,37 @@ func toTemplateConstraintsResourceLimits(o map[string]any) *sdk.NodetemplatesV1T
 	return out
 }
 
+func toTemplateConstraintsAWSConstraints(o map[string]any) *sdk.NodetemplatesV1TemplateConstraintsAWSConstraints {
+	if o == nil {
+		return nil
+	}
+	out := &sdk.NodetemplatesV1TemplateConstraintsAWSConstraints{}
+	v, ok := o[FieldNodeTemplateCapacityReservations].([]any)
+	if !ok || len(v) == 0 {
+		return out
+	}
+
+	reservations := lo.FilterMap(v, func(item any, _ int) (sdk.NodetemplatesV1TemplateConstraintsAWSConstraintsCapacityReservation, bool) {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return sdk.NodetemplatesV1TemplateConstraintsAWSConstraintsCapacityReservation{}, false
+		}
+		r := sdk.NodetemplatesV1TemplateConstraintsAWSConstraintsCapacityReservation{}
+		if id, ok := m[FieldNodeTemplateCapacityReservationId].(string); ok && id != "" {
+			r.Id = toPtr(id)
+		}
+		if arn, ok := m[FieldNodeTemplateCapacityResourceGroupArn].(string); ok && arn != "" {
+			r.CapacityResourceGroupArn = toPtr(arn)
+		}
+		if t, ok := m[FieldNodeTemplateCapacityReservationType].(string); ok && t != "" {
+			r.Type = toPtr(sdk.NodetemplatesV1TemplateConstraintsAWSConstraintsCapacityReservationType(t))
+		}
+		return r, true
+	})
+	out.CapacityReservations = &reservations
+	return out
+}
+
 func toTemplateConstraintsGpuConstraints(o map[string]any) *sdk.NodetemplatesV1TemplateConstraintsGPUConstraints {
 	if o == nil {
 		return nil
@@ -1661,6 +1962,14 @@ func toTemplateConstraintsGpuConstraints(o map[string]any) *sdk.NodetemplatesV1T
 	}
 	if v, ok := o[FieldNodeTemplateMaxCount].(int); ok && v != 0 {
 		out.MaxCount = toPtr(int32(v))
+	}
+	if v, ok := o[FieldNodeTemplateFractionalGPUs].(string); ok {
+		switch v {
+		case Enabled:
+			out.FractionalGpus = toPtr(sdk.ENABLED)
+		case Disabled:
+			out.FractionalGpus = toPtr(sdk.DISABLED)
+		}
 	}
 
 	return out
@@ -1723,6 +2032,23 @@ func toTemplateConstraintsNodeAffinity(o map[string]any) *sdk.NodetemplatesV1Tem
 	return &out
 }
 
+func toPriceAdjustmentConfiguration(obj map[string]any) *sdk.NodetemplatesV1PriceAdjustmentConfiguration {
+	if obj == nil {
+		return nil
+	}
+
+	out := &sdk.NodetemplatesV1PriceAdjustmentConfiguration{}
+	if v, ok := obj[FieldNodeTemplateInstanceTypeAdjustments].(map[string]any); ok && len(v) > 0 {
+		adjustments := make(map[string]string)
+		for k, val := range v {
+			adjustments[k] = val.(string)
+		}
+		out.InstanceTypeAdjustments = &adjustments
+	}
+
+	return out
+}
+
 // compareLists compares state of two lists
 // inspired by https://github.com/hashicorp/terraform-plugin-sdk/issues/477#issuecomment-1238807249
 func compareLists(key, oldValue, newValue string, d *schema.ResourceData) bool {
@@ -1755,4 +2081,28 @@ func compareLists(key, oldValue, newValue string, d *schema.ResourceData) bool {
 		return reflect.DeepEqual(oldItems, newItems)
 	}
 	return false
+}
+
+// gpuSharingStrategyToAPI converts a terraform-friendly strategy string to the API enum value.
+func gpuSharingStrategyToAPI(s string) sdk.NodetemplatesV1GPUSharingStrategy {
+	switch s {
+	case "mps":
+		return sdk.GPUSHARINGSTRATEGYMPS
+	case "time-slicing":
+		return sdk.GPUSHARINGSTRATEGYTIMESLICING
+	default:
+		return sdk.GPUSHARINGSTRATEGYUNSPECIFIED
+	}
+}
+
+// gpuSharingStrategyToTerraform converts the API enum value to a terraform-friendly string.
+func gpuSharingStrategyToTerraform(s sdk.NodetemplatesV1GPUSharingStrategy) string {
+	switch s {
+	case sdk.GPUSHARINGSTRATEGYMPS:
+		return "mps"
+	case sdk.GPUSHARINGSTRATEGYTIMESLICING:
+		return "time-slicing"
+	default:
+		return ""
+	}
 }

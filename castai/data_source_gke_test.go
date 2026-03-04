@@ -2,12 +2,14 @@ package castai
 
 import (
 	"context"
-	"github.com/castai/terraform-provider-castai/castai/sdk"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/hashicorp/go-cty/cty"
+	sdkterraform "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/stretchr/testify/require"
+
+	"github.com/castai/terraform-provider-castai/castai/sdk"
 )
 
 func Test_dataSourceGKEPoliciesRead(t *testing.T) {
@@ -53,7 +55,7 @@ func Test_dataSourceGKEPoliciesRead(t *testing.T) {
 				},
 			}
 
-			state := terraform.NewInstanceStateShimmedFromValue(cty.ObjectVal(map[string]cty.Value{}), 0)
+			state := sdkterraform.NewInstanceStateShimmedFromValue(cty.ObjectVal(map[string]cty.Value{}), 0)
 
 			resource := dataSourceGKEPolicies()
 			data := resource.Data(state)
@@ -72,7 +74,7 @@ func Test_dataSourceGKEPoliciesRead(t *testing.T) {
 	}
 }
 
-func TestAccDataSourceGKEPolicies_basic(t *testing.T) {
+func TestAccGKE_DataSourceGKEPolicies_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,

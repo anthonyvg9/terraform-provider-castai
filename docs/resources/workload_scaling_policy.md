@@ -88,6 +88,7 @@ resource "castai_workload_scaling_policy" "services" {
   rollout_behavior {
     type = "NO_DISRUPTION"
   }
+  excluded_containers = ["container-1", "container-2"]
 }
 ```
 
@@ -113,6 +114,7 @@ resource "castai_workload_scaling_policy" "services" {
 - `assignment_rules` (Block List) Allows defining conditions for automatically assigning workloads to this scaling policy. (see [below for nested schema](#nestedblock--assignment_rules))
 - `confidence` (Block List, Max: 1) Defines the confidence settings for applying recommendations. (see [below for nested schema](#nestedblock--confidence))
 - `downscaling` (Block List, Max: 1) (see [below for nested schema](#nestedblock--downscaling))
+- `excluded_containers` (List of String) Defines containers to be excluded from receiving recommendations. The containers are matched by exact name.
 - `memory_event` (Block List, Max: 1) (see [below for nested schema](#nestedblock--memory_event))
 - `predictive_scaling` (Block List, Max: 1) (see [below for nested schema](#nestedblock--predictive_scaling))
 - `rollout_behavior` (Block List, Max: 1) Defines the rollout behavior used when applying recommendations. Prerequisites:
@@ -172,11 +174,15 @@ Required:
 
 - `type` (String) Defines limit strategy type.
 	- NO_LIMIT - removes the resource limit even if it was specified in the workload spec.
+	- KEEP_LIMITS - keep existing resource limits. While limits provide stability predictability, they may restrict workloads that need to temporarily burst beyond their allocation.
 	- MULTIPLIER - used to calculate the resource limit. The final value is determined by multiplying the resource request by the specified factor.
+	- MAINTAIN_RATIO - maintains the original ratio between requests and limits.
 
 Optional:
 
 - `multiplier` (Number) Multiplier used to calculate the resource limit. It must be defined for the MULTIPLIER strategy.
+- `only_if_original_exist` (Boolean) Apply the strategy only when the original resource has limits defined.
+- `only_if_original_lower` (Boolean) Use the original resource limits if they are higher than recommended values.
 
 
 
@@ -224,11 +230,15 @@ Required:
 
 - `type` (String) Defines limit strategy type.
 	- NO_LIMIT - removes the resource limit even if it was specified in the workload spec.
+	- KEEP_LIMITS - keep existing resource limits. While limits provide stability predictability, they may restrict workloads that need to temporarily burst beyond their allocation.
 	- MULTIPLIER - used to calculate the resource limit. The final value is determined by multiplying the resource request by the specified factor.
+	- MAINTAIN_RATIO - maintains the original ratio between requests and limits.
 
 Optional:
 
 - `multiplier` (Number) Multiplier used to calculate the resource limit. It must be defined for the MULTIPLIER strategy.
+- `only_if_original_exist` (Boolean) Apply the strategy only when the original resource has limits defined.
+- `only_if_original_lower` (Boolean) Use the original resource limits if they are higher than recommended values.
 
 
 
@@ -339,8 +349,9 @@ Required:
 <a id="nestedblock--rollout_behavior"></a>
 ### Nested Schema for `rollout_behavior`
 
-Required:
+Optional:
 
+- `prefer_one_by_one` (Boolean) Defines if pods should be restarted one by one to avoid service disruption.
 - `type` (String) Defines the rollout type to be used when applying recommendations.
 	- NO_DISRUPTION - pods are restarted without causing service disruption.
 
@@ -398,6 +409,7 @@ Using the `import` block is a simpler and more convenient way of importing resou
    cpu {
      look_back_period_seconds = 0
    }
+   ```
 
 4. Apply the import plan:
 

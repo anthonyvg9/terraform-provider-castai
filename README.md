@@ -1,5 +1,9 @@
 <a href="https://cast.ai">
-    <img src="https://cast.ai/wp-content/themes/cast/img/cast-logo-dark-blue.svg" align="right" height="100" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/full-logo-white.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/full-logo-black.svg">
+    <img src=".github/full-logo-black.svg" alt="Cast AI logo" title="Cast AI" align="right" height="50">
+  </picture>
 </a>
 
 Terraform Provider for CAST AI
@@ -483,7 +487,7 @@ These fields are planned for removal in a future major version. Users are encour
     *   **Deprecated:** `autoscaler_settings.spot_diversity_enabled`. Use `constraints.enable_spot_diversity` in the default `castai_node_template`.
     *   **Deprecated:** `autoscaler_settings.spot_diversity_price_increase_limit`. Use `constraints.spot_diversity_price_increase_limit_percent` in the default `castai_node_template`.
 
-4.  **Spot Interruption Predictions:**
+4.  **Spot Interruption Predictions (Currently available only for AWS.):** 
     *   **Deprecated:** `autoscaler_settings.spot_interruption_predictions` block. Use the top-level `spot_interruption_predictions_enabled` and `spot_interruption_predictions_type` fields in the default `castai_node_template` resource.
 
 Developing the provider

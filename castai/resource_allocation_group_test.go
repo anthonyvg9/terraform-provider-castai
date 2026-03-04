@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccResourceAllocationGroup(t *testing.T) {
+func TestAccCloudAgnostic_ResourceAllocationGroup(t *testing.T) {
 	resourceName := "castai_allocation_group.test"
 
 	resource.Test(t, resource.TestCase{
@@ -21,8 +20,11 @@ func TestAccResourceAllocationGroup(t *testing.T) {
 		CheckDestroy:      testAccCheckAllocationGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      invalidAllocationGroupConfig(),
-				ExpectError: regexp.MustCompile(`allocation group must specify at least one of: cluster_ids, namespaces, or labels`),
+				Config: allocationGroupWithAllClusterIds(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test terraform example"),
+					resource.TestCheckResourceAttr(resourceName, "cluster_ids.#", "0"),
+				),
 			},
 			{
 				Config: allocationGroupConfig(),
@@ -84,11 +86,13 @@ func testAccCheckAllocationGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func invalidAllocationGroupConfig() string {
+func allocationGroupWithAllClusterIds() string {
 	cfg := `
-	resource "castai_allocation_group" "test" {
+    resource "castai_allocation_group" "test" {
 		name = "Test terraform example"
-	}`
+		cluster_ids = []
+	}
+	`
 	return ConfigCompose(cfg)
 }
 
